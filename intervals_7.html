@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Pastel Piano – Interval + Scale Trainer with Staff (Rebuilt)</title>
+
+<style>
+/* ==========================================================
+   GLOBAL THEME
+   ========================================================== */
+:root {
+    --bg:#f4f4f2;
+    --white:#ffffff;
+    --white-active:#cde7ff;
+    --black:#222;
+    --black-active:#6db3ff;
+
+    --pastel-1:#ffd6e8;
+    --pastel-2:#ffecc7;
+    --pastel-3:#d7f5e9;
+    --pastel-4:#d8e7ff;
+    --pastel-5:#f8dfff;
+
+    --button-bg:#ececec;
+    --button-hover:#dedede;
+}
+
+body {
+    background:var(--bg);
+    font-family:"Inter",sans-serif;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:25px;
+}
+
+h2 {
+    margin-bottom:20px;
+    color:#444;
+}
+
+/* ==========================================================
+   KEYBOARD
+   ========================================================== */
+.piano-wrapper {
+    width:900px;
+    height:240px;
+    margin-bottom:15px;
+    position:relative;
+}
+
+.piano {
+    position:relative;
+    height:240px;
+}
+
+/* White keys */
+.white {
+    position:absolute;
+    bottom:0;
+    width:40px;
+    height:240px;
+    background:var(--white);
+    border:1px solid #0002;
+    color:#333;
+    z-index:1;
+    display:flex;
+    justify-content:center;
+    align-items:flex-end;
+    padding-bottom:5px;
+}
+
+.white.active {
+    background:var(--white-active);
+}
+
+/* Black keys — T1 flush-top alignment */
+.black {
+    position:absolute;
+    top:0;       /* <-- FIX: align to top */
+    width:24px;
+    height:150px;
+    background:var(--black);
+    border:1px solid #0002;
+    color:#fff;
+    border-radius:0 0 4px 4px;
+    z-index:2;
+    display:flex;
+    justify-content:center;
+    align-items:flex-end;
+    padding-bottom:5px;
+}
+
+.black.active {
+    background:var(--black-active);
+}
+
+/* ==========================================================
+   STAFF
+   ========================================================== */
+#staffWrapper {
+    width:900px;
+    height:180px;
+    margin-bottom:20px;
+    display:flex;
+    justify-content:center;
+}
+
+#staffSVG {
+    width:100%;
+    height:100%;
+}
+
+.staff-line {
+    stroke:#000;
+    stroke-width:1;
+}
+
+.staff-note {
+    fill:#000;
+}
+
+.ledger {
+    stroke:#000;
+    stroke-width:1;
+}
+
+.accidental {
+    font-size:24px;
+    font-family:serif;
+    fill:#000;
+}
+
+/* ==========================================================
+   NOTE BUTTONS
+   ========================================================== */
+.note-list-container {
+    width:900px;
+    overflow-x:auto;
+    margin-bottom:20px;
+}
+
+.note-list {
+    display:flex;
+    gap:10px;
+    padding:5px;
+    min-width:fit-content;
+}
+
+.note-button {
+    background:var(--button-bg);
+    padding:6px 12px;
+    border:1px solid #ccc;
+    border-radius:6px;
+    cursor:pointer;
+}
+
+.note-button:hover {
+    background:var(--button-hover);
+}
+
+.note-button.active {
+    background:var(--pastel-4);
+    border-color:#999;
+}
+
+/* ==========================================================
+   NAVIGATION BUTTONS
+   ========================================================== */
+.nav-buttons {
+    display:flex;
+    gap:20px;
+    margin-bottom:20px;
+}
+
+.nav-button {
+    padding:8px 15px;
+    background:var(--pastel-5);
+    border-radius:8px;
+    border:1px solid #ccc;
+    cursor:pointer;
+}
+
+.nav-button:hover {
+    filter:brightness(0.95);
+}
+
+/* ==========================================================
+   INTERVAL & SCALE PANELS
+   ========================================================== */
+.interval-panel,
+.scale-panel {
+    width:900px;
+    display:none;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:10px;
+    margin-bottom:20px;
+}
+
+.interval-button,
+.scale-button {
+    padding:8px 12px;
+    background:var(--pastel-3);
+    border:1px solid #ccc;
+    border-radius:6px;
+    cursor:pointer;
+}
+
+.interval-button:hover,
+.scale-button:hover {
+    filter:brightness(0.95);
+}
+</style>
+</head>
+
+<body>
+
+<h2>🎹 Interval + Scale Trainer with Staff</h2>
+
+<!-- PIANO -->
+<div class="piano-wrapper">
+    <div class="piano" id="piano"></div>
+</div>
+
+<!-- STAFF -->
+<div id="staffWrapper">
+    <svg id="staffSVG" viewBox="0 0 900 180"></svg>
+</div>
+
+<!-- NAVIGATION -->
+<div class="nav-buttons">
+    <div class="nav-button" id="prevNote">⬅ Prev</div>
+    <div class="nav-button" id="nextNote">Next ➡</div>
+</div>
+
+<!-- NOTE BUTTONS -->
+<div class="note-list-container">
+    <div class="note-list" id="noteList"></div>
+</div>
+
+<!-- INTERVALS -->
+<div class="interval-panel" id="intervalPanel"></div>
+
+<!-- SCALES -->
+<div class="scale-panel" id="scalePanel"></div>
+
+
+<script>
+/* ==========================================================
+   NOTE DATA (3 OCTAVES)
+   ========================================================== */
+const NAMES=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+
+function midiFromName(n){
+    let L=n[0],acc=n.includes("#")?1:0,oct=+n.slice(-1);
+    let base={C:0,D:2,E:4,F:5,G:7,A:9,B:11}[L];
+    return (oct+1)*12+base+acc;
+}
+
+const NOTES=[];
+["3","4","5"].forEach(o=>{
+    NAMES.forEach(n=>{
+        const full=n+o;
+        NOTES.push({
+            note:full,
+            midi:midiFromName(full),
+            freq:440*Math.pow(2,(midiFromName(full)-69)/12)
+        });
+    });
+});
+
+/* ==========================================================
+   AUDIO
+   ========================================================== */
+const audio=new (window.AudioContext||window.webkitAudioContext)();
+
+function playTone(freq,delay=0){
+    const osc=audio.createOscillator();
+    const g=audio.createGain();
+    osc.type="sine";
+    osc.frequency.value=freq;
+    osc.connect(g);
+    g.connect(audio.destination);
+    const t=audio.currentTime+delay;
+    g.gain.setValueAtTime(.0001,t);
+    g.gain.exponentialRampToValueAtTime(.4,t+.04);
+    g.gain.exponentialRampToValueAtTime(.0001,t+1);
+    osc.start(t);
+    osc.stop(t+1.05);
+}
+
+function playScale(arr){
+    arr.forEach((i,j)=>playTone(NOTES[i].freq,j*0.12));
+}
+
+/* ==========================================================
+   BUILD KEYBOARD (Option C + B2 + T1 flush-top)
+   ========================================================== */
+const piano=document.getElementById("piano");
+const keys=[];
+let whiteIndex=0;
+
+NOTES.forEach((n,i)=>{
+    const isBlack=n.note.includes("#");
+    const key=document.createElement("div");
+    key.dataset.index=i;
+    key.textContent=n.note;
+
+    if(!isBlack){
+        /* WHITE KEY */
+        key.className="white";
+        key.style.left=(whiteIndex*40)+"px";
+        whiteIndex++;
+    } else {
+        /* BLACK KEY — forward shifted + flush top */
+        key.className="black";
+        /* Slight forward shift = +6px */
+        key.style.left=(whiteIndex*40 - 12 + 6)+"px";
+    }
+
+    key.onclick=()=>selectRoot(i);
+
+    piano.appendChild(key);
+    keys.push(key);
+});
+
+function highlight(arr){
+    keys.forEach(k=>k.classList.remove("active"));
+    arr.forEach(i=>keys[i]?.classList.add("active"));
+}
+
+/* ==========================================================
+   NOTE BUTTONS
+   ========================================================== */
+const noteList=document.getElementById("noteList");
+
+NOTES.forEach((n,i)=>{
+    let b=document.createElement("div");
+    b.className="note-button";
+    b.dataset.index=i;
+    b.textContent=n.note;
+    b.onclick=()=>selectRoot(i);
+    noteList.appendChild(b);
+});
+
+/* ==========================================================
+   INTERVALS
+   ========================================================== */
+const INTERVALS=[
+    {name:"Minor 2nd",st:1},
+    {name:"Major 2nd",st:2},
+    {name:"Minor 3rd",st:3},
+    {name:"Major 3rd",st:4},
+    {name:"Perfect 4th",st:5},
+    {name:"Diminished 5th",st:6},
+    {name:"Perfect 5th",st:7},
+    {name:"Minor 6th",st:8},
+    {name:"Major 6th",st:9},
+    {name:"Minor 7th",st:10},
+    {name:"Major 7th",st:11},
+    {name:"Octave",st:12}
+];
+
+const intervalPanel=document.getElementById("intervalPanel");
+
+/* ==========================================================
+   SCALES
+   ========================================================== */
+const SCALES=[
+    {name:"Major",steps:[0,2,4,5,7,9,11,12]},
+    {name:"Natural Minor",steps:[0,2,3,5,7,8,10,12]},
+    {name:"Harmonic Minor",steps:[0,2,3,5,7,8,11,12]},
+    {name:"Melodic Minor",steps:[0,2,3,5,7,9,11,12]},
+    {name:"Dorian",steps:[0,2,3,5,7,9,10,12]},
+    {name:"Mixolydian",steps:[0,2,4,5,7,9,10,12]},
+    {name:"Pentatonic Major",steps:[0,2,4,7,9,12]},
+    {name:"Pentatonic Minor",steps:[0,3,5,7,10,12]}
+];
+
+const scalePanel=document.getElementById("scalePanel");
+
+/* ==========================================================
+   STAFF ENGINE (Accidentals Option 3)
+   ========================================================== */
+const staffSVG=document.getElementById("staffSVG");
+
+function drawStaff(){
+    staffSVG.innerHTML="";
+
+    /* Staff lines */
+    for(let i=0;i<5;i++){
+        const y=60+i*12;
+        let l=document.createElementNS("http://www.w3.org/2000/svg","line");
+        l.setAttribute("x1","80");
+        l.setAttribute("x2","820");
+        l.setAttribute("y1",y);
+        l.setAttribute("y2",y);
+        l.setAttribute("class","staff-line");
+        staffSVG.appendChild(l);
+    }
+
+    /* Treble clef */
+    let clef=document.createElementNS("http://www.w3.org/2000/svg","text");
+    clef.setAttribute("x","100");
+    clef.setAttribute("y","110");
+    clef.setAttribute("font-size","80");
+    clef.setAttribute("font-family","serif");
+    clef.textContent="𝄞";
+    staffSVG.appendChild(clef);
+}
+
+drawStaff();
+
+/* midi → y */
+
+function staffY(midi) {
+    const REF_MIDI = 64; // E4 on the bottom staff line
+    const REF_Y = 108;   // y‑position of bottom line
+    const SEMITONE_STEP = 3; // 3px per semitone is correct visual spacing
+
+    return REF_Y - (midi - REF_MIDI) * SEMITONE_STEP;
+
+}
+
+/* Ledger line */
+function ledger(cx,cy){
+    let L=document.createElementNS("http://www.w3.org/2000/svg","line");
+    L.setAttribute("x1",cx-12);
+    L.setAttribute("x2",cx+12);
+    L.setAttribute("y1",cy);
+    L.setAttribute("y2",cy);
+    L.setAttribute("class","ledger");
+    staffSVG.appendChild(L);
+}
+
+/* Accidentals (Option 3) */
+function accidentalOf(note){
+    if(note.includes("#")) return "♯";
+    return "";
+}
+
+function drawNotes(indices){
+    drawStaff();
+
+    let x=180;
+
+    indices.forEach(i=>{
+        const midi=NOTES[i].midi;
+        const y=staffY(midi);
+
+        const acc=accidentalOf(NOTES[i].note);
+
+        if(acc){
+            let a=document.createElementNS("http://www.w3.org/2000/svg","text");
+            a.setAttribute("x",x-22);
+            a.setAttribute("y",y+4);
+            a.setAttribute("class","accidental");
+            a.textContent=acc;
+            staffSVG.appendChild(a);
+        }
+
+        let head=document.createElementNS("http://www.w3.org/2000/svg","ellipse");
+        head.setAttribute("cx",x);
+        head.setAttribute("cy",y);
+        head.setAttribute("rx","8");
+        head.setAttribute("ry","6");
+        head.setAttribute("class","staff-note");
+        staffSVG.appendChild(head);
+
+        if(y<60){
+            for(let ly=60;ly>y;ly-=12) ledger(x,ly);
+        }
+        if(y>108){
+            for(let ly=108;ly<y;ly+=12) ledger(x,ly);
+        }
+
+        x+=35;
+    });
+}
+
+/* ==========================================================
+   SELECT ROOT
+   ========================================================== */
+let rootIndex=0;
+
+function selectRoot(i){
+    rootIndex=i;
+
+    document.querySelectorAll(".note-button")
+        .forEach(b=>b.classList.remove("active"));
+    const btn=document.querySelector(`.note-button[data-index="${i}"]`);
+    btn.classList.add("active");
+
+    highlight([i]);
+    playTone(NOTES[i].freq);
+    autoScroll(btn);
+
+    showIntervals();
+    showScales();
+
+    drawNotes([i]);
+}
+
+/* ==========================================================
+   INTERVAL PANEL
+   ========================================================== */
+function showIntervals(){
+    intervalPanel.innerHTML="";
+    intervalPanel.style.display="flex";
+
+    INTERVALS.forEach(iv=>{
+        const b=document.createElement("div");
+        b.className="interval-button";
+        b.textContent=iv.name;
+
+        b.onclick=()=>{
+            const target=rootIndex+iv.st;
+            highlight([rootIndex,target]);
+            playTone(NOTES[rootIndex].freq);
+            if(NOTES[target]) playTone(NOTES[target].freq,0.05);
+            drawNotes([rootIndex,target]);
+        };
+
+        intervalPanel.appendChild(b);
+    });
+}
+
+/* ==========================================================
+   SCALE PANEL
+   ========================================================== */
+function showScales(){
+    scalePanel.innerHTML="";
+    scalePanel.style.display="flex";
+
+    SCALES.forEach(sc=>{
+        const b=document.createElement("div");
+        b.className="scale-button";
+        b.textContent=sc.name;
+
+        b.onclick=()=>{
+            const arr=sc.steps.map(st=>rootIndex+st).filter(i=>NOTES[i]);
+            highlight(arr);
+            playScale(arr);
+            drawNotes(arr);
+        };
+
+        scalePanel.appendChild(b);
+    });
+}
+
+/* ==========================================================
+   NAVIGATION
+   ========================================================== */
+document.getElementById("prevNote").onclick=()=>{
+    rootIndex=(rootIndex-1+NOTES.length)%NOTES.length;
+    selectRoot(rootIndex);
+};
+
+document.getElementById("nextNote").onclick=()=>{
+    rootIndex=(rootIndex+1)%NOTES.length;
+    selectRoot(rootIndex);
+};
+
+document.addEventListener("keydown",e=>{
+    if(e.key==="ArrowLeft")selectRoot((rootIndex-1+NOTES.length)%NOTES.length);
+    if(e.key==="ArrowRight")selectRoot((rootIndex+1)%NOTES.length);
+});
+
+/* ==========================================================
+   AUTO SCROLL
+   ========================================================== */
+function autoScroll(btn){
+    const cont=document.querySelector(".note-list-container");
+    const rect=btn.getBoundingClientRect();
+    const cRect=cont.getBoundingClientRect();
+    const offset=rect.left-cRect.left-(cRect.width/2-rect.width/2);
+    cont.scrollBy({left:offset,behavior:"smooth"});
+}
+
+/* INIT */
+selectRoot(0);
+</script>
+
+</body>
+</html>

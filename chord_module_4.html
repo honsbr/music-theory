@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Chord Progression Builder – Minimal Dot Playback (Final)</title>
+
+<style>
+
+/* ========== GLOBAL MINIMAL ========== */
+body {
+    font-family: Inter, system-ui, sans-serif;
+    background: #fafafa;
+    padding: 40px;
+    color: #444;
+}
+
+/* ========== KEY INPUT PANEL ========== */
+.key-box {
+    background: #fff;
+    padding: 14px;
+    width: 260px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.key-box input {
+    width: 90%;
+    padding: 6px;
+    margin-top: 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+/* ========== CHORD BLOCKS ========== */
+.progression {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 22px;
+}
+
+.block {
+    width: 150px;
+    height: 260px;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #cdd8ce;
+    background: #DFF4E3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: background 0.2s, border-color 0.2s;
+    position: relative;
+}
+
+/* THE ORIGINAL DOT (RESTORED) */
+.block .inner-dot {
+    width: 12px;
+    height: 12px;
+    background: #ddd;
+    border-radius: 50%;
+    position: absolute;
+    top: 10px;
+    left: calc(50% - 6px);
+    transition: background 0.15s, transform 0.15s;
+}
+
+/* DOT LIGHT-UP WHEN PLAYING */
+.block.playing .inner-dot {
+    background: #7ecb8a;
+    transform: scale(1.3);
+}
+
+/* BLOCK HIGHLIGHT WHEN PLAYING */
+.block.playing {
+    background: #c8ebd2 !important;
+    border-color: #7ecb8a !important;
+}
+
+/* UNUSED BLOCK */
+.grey {
+    background: #f0f0f0;
+    border: 1px dashed #ccc;
+    opacity: 0.7;
+}
+
+.unused * {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* CONTROLS */
+.controls {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #555;
+    margin-top: 24px;
+    margin-bottom: 12px;
+}
+
+.controls span {
+    cursor: pointer;
+}
+
+.notes {
+    font-size: 12px;
+    margin-bottom: 10px;
+    height: 18px;
+    color: #555;
+}
+
+/* ARROWS */
+.arrow {
+    font-size: 20px;
+    cursor: pointer;
+    user-select: none;
+    color: #555;
+}
+
+/* ROMAN NUMERAL */
+.num-display {
+    font-size: 28px;
+    border: 1px solid #ccc;
+    padding: 10px 20px;
+    border-radius: 6px;
+    background: #fff;
+    margin: 10px 0;
+    color: #333;
+}
+
+/* ========== DRAG & DROP ========== */
+.drag-ghost {
+    opacity: 0.4 !important;
+    transform: scale(0.96);
+}
+
+.drag-placeholder {
+    width: 150px;
+    height: 260px;
+    border: 1px dashed #bbb;
+    border-radius: 8px;
+}
+
+/* ========== SEQUENCER CONTROLS (NO STRIP) ========== */
+.sequencer {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 18px;
+    width: 360px;
+}
+
+.seq-btn,
+.loop-btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid #999;
+    background: #f8f8f8;
+    cursor: pointer;
+    font-size: 13px;
+    margin-right: 14px;
+}
+
+.seq-btn:active,
+.loop-btn:active {
+    transform: translateY(1px);
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="key-box">
+    <label>Key</label><br>
+    <input id="keyInput" type="text" placeholder="C, F#, Eb…" oninput="updateAllNotes()">
+</div>
+
+<!-- MAIN BLOCK AREA -->
+<div class="progression" id="progression"></div>
+
+<!-- SEQUENCER -->
+<div class="sequencer">
+    <button class="seq-btn" onclick="startSequence()">Play</button>
+    <button class="seq-btn" onclick="stopSequence()">Stop</button>
+    <button class="loop-btn" onclick="toggleLoop()" id="loopBtn">Loop: ON</button>
+
+    <div style="margin-top: 16px;">
+        BPM:
+        <input id="bpm" type="range" min="40" max="200" value="110" style="width: 180px;">
+    </div>
+</div>
+
+
+<script>
+
+/* ===========================
+   THEORY ENGINE
+=========================== */
+const numerals = ["i", "ii", "iii", "IV", "V", "vi", "vii°"];
+
+function getMajorScale(root) {
+    const ST = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+    const FLAT = {"Db":"C#","Eb":"D#","Gb":"F#","Ab":"G#","Bb":"A#"};
+    if (FLAT[root]) root = FLAT[root];
+    const pattern = [2,2,1,2,2,2,1];
+
+    let idx = ST.indexOf(root);
+    if (idx < 0) return ST;
+
+    let sc = [root];
+    for (let step of pattern) {
+        idx = (idx + step) % 12;
+        sc.push(ST[idx]);
+    }
+    return sc.slice(0,7);
+}
+
+function getChordNotes(key, roman) {
+    const scale = getMajorScale(key);
+    const i = numerals.indexOf(roman);
+    return [
+        scale[i],
+        scale[(i+2)%7],
+        scale[(i+4)%7]
+    ];
+}
+
+/* ===========================
+   CREATE BLOCK
+=========================== */
+const progression = document.getElementById("progression");
+
+function createActiveBlock(numeralIndex = 0, omitRemove = false) {
+    const block = document.createElement("div");
+    block.className = "block";
+
+    /* dot inside block */
+    const dot = document.createElement("div");
+    dot.className = "inner-dot";
+    block.appendChild(dot);
+
+    const controls = document.createElement("div");
+    controls.className = "controls";
+
+    controls.innerHTML = `
+        <span onclick="addBlockAfter(this)">add</span>
+        ${omitRemove ? `<span></span>` : `<span onclick="removeBlock(this)">remove</span>`}
+    `;
+
+    const notes = document.createElement("div");
+    notes.className = "notes";
+
+    const up = document.createElement("div");
+    up.className = "arrow";
+    up.innerHTML = "▲";
+
+    const numeral = document.createElement("div");
+    numeral.className = "num-display";
+    numeral.innerHTML = numerals[numeralIndex];
+
+    const down = document.createElement("div");
+    down.className = "arrow";
+    down.innerHTML = "▼";
+
+    up.onclick = () => {
+        numeralIndex = (numeralIndex + 1) % numerals.length;
+        numeral.innerHTML = numerals[numeralIndex];
+        updateAllNotes();
+    };
+
+    down.onclick = () => {
+        numeralIndex = (numeralIndex - 1 + numerals.length) % numerals.length;
+        numeral.innerHTML = numerals[numeralIndex];
+        updateAllNotes();
+    };
+
+    block.appendChild(controls);
+    block.appendChild(notes);
+    block.appendChild(up);
+    block.appendChild(numeral);
+    block.appendChild(down);
+
+    return block;
+}
+
+function createUnusedBlock() {
+    const block = document.createElement("div");
+    block.className = "block grey unused";
+    return block;
+}
+
+function refreshUnused() {
+    const blocks = [...progression.children];
+    const last = blocks[blocks.length - 1];
+    if (!last || !last.classList.contains("unused")) {
+        progression.appendChild(createUnusedBlock());
+    }
+}
+
+/* ===========================
+   ADD/REMOVE WITH "FIRST BLOCK NO REMOVE"
+=========================== */
+
+function rebuildBlocks(children) {
+    const rebuilt = [];
+
+    // First block must have no "remove"
+    const firstNum =
+        numerals.indexOf(children[0].querySelector(".num-display").innerHTML);
+    rebuilt.push(createActiveBlock(firstNum, true));
+
+    // All others must have remove
+    for (let i = 1; i < children.length; i++) {
+        const numeral = children[i].querySelector(".num-display").innerHTML;
+        rebuilt.push(createActiveBlock(numerals.indexOf(numeral), false));
+    }
+
+    return rebuilt;
+}
+
+function addBlockAfter(el) {
+    const parent = el.closest(".block");
+    const children = [...progression.children];
+    const index = children.indexOf(parent);
+
+    children.pop(); 
+    children.splice(index + 1, 0, createActiveBlock());
+
+    progression.innerHTML = "";
+    rebuildBlocks(children).forEach(b => progression.appendChild(b));
+
+    refreshUnused();
+    updateAllNotes();
+}
+
+function removeBlock(el) {
+    const children = [...progression.children];
+    if (children.length <= 2) return;
+
+    const index = children.indexOf(el.closest(".block"));
+    children.pop();
+    children.splice(index, 1);
+
+    progression.innerHTML = "";
+    rebuildBlocks(children).forEach(b => progression.appendChild(b));
+
+    refreshUnused();
+    updateAllNotes();
+}
+
+/* ===========================
+   UPDATE NOTES
+=========================== */
+function updateAllNotes() {
+    const key = document.getElementById("keyInput").value || "C";
+    [...progression.children].forEach(block => {
+        if (block.classList.contains("unused")) return;
+
+        const numeral = block.querySelector(".num-display").innerHTML;
+        block.querySelector(".notes").innerHTML =
+            getChordNotes(key, numeral).join(" ");
+    });
+}
+
+/* Init */
+progression.appendChild(createActiveBlock(0, true));
+refreshUnused();
+updateAllNotes();
+
+/* ===========================
+   DRAG & DROP
+=========================== */
+let dragItem = null;
+let placeholder = null;
+
+progression.addEventListener("dragstart", e => {
+    const block = e.target.closest(".block");
+    if (!block || block.classList.contains("unused")) return;
+    dragItem = block;
+    block.classList.add("drag-ghost");
+    placeholder = document.createElement("div");
+    placeholder.className = "drag-placeholder";
+});
+
+progression.addEventListener("dragend", () => {
+    if (!dragItem) return;
+    dragItem.classList.remove("drag-ghost");
+    placeholder.remove();
+    dragItem = null;
+});
+
+progression.addEventListener("dragover", e => {
+    e.preventDefault();
+    const after = [...progression.children].find(c => {
+        const rect = c.getBoundingClientRect();
+        return e.clientX < rect.left + rect.width / 2;
+    });
+
+    if (after && !after.classList.contains("unused")) {
+        progression.insertBefore(placeholder, after);
+    } else {
+        const last = progression.children[progression.children.length - 1];
+        if (!last.classList.contains("unused"))
+            progression.appendChild(placeholder);
+    }
+});
+
+progression.addEventListener("drop", () => {
+    if (!dragItem) return;
+    progression.insertBefore(dragItem, placeholder);
+    placeholder.remove();
+    refreshUnused();
+    updateAllNotes();
+});
+
+setInterval(() => {
+    [...progression.children].forEach(b => {
+        if (b.classList.contains("unused")) b.removeAttribute("draggable");
+        else b.setAttribute("draggable", "true");
+    });
+}, 150);
+
+/* ===========================
+   AUDIO PLAYBACK 
+   (lights up inner dot)
+=========================== */
+let audioCtx = null;
+let seqTimeouts = [];
+let loopOn = true;
+let seqRunning = false;
+
+document.getElementById("loopBtn").innerText = "Loop: ON";
+
+function toggleLoop() {
+    loopOn = !loopOn;
+    document.getElementById("loopBtn").innerText =
+        loopOn ? "Loop: ON" : "Loop: OFF";
+}
+
+function noteToHz(note) {
+    const A4 = 440;
+    const SEMI = {
+        "C": -9, "C#": -8, "Db": -8,
+        "D": -7, "D#": -6, "Eb": -6,
+        "E": -5,
+        "F": -4, "F#": -3, "Gb": -3,
+        "G": -2, "G#": -1, "Ab": -1,
+        "A": 0,
+        "A#": 1, "Bb": 1,
+        "B": 2
+    };
+    return A4 * Math.pow(2, (SEMI[note] ?? 0) / 12);
+}
+
+function playChord(notes, startTime, duration) {
+    notes.forEach(n => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = "triangle";
+        osc.frequency.value = noteToHz(n);
+
+        gain.gain.setValueAtTime(0.001, startTime);
+        gain.gain.linearRampToValueAtTime(0.15, startTime + 0.05);
+        gain.gain.linearRampToValueAtTime(0.001, startTime + duration);
+
+        osc.connect(gain).connect(audioCtx.destination);
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+    });
+}
+
+function startSequence() {
+    stopSequence();
+    seqRunning = true;
+
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const bpm = document.getElementById("bpm").value;
+    const beat = 60 / bpm;
+    const dur = beat * 2;
+
+    const blocks = [...progression.children]
+        .filter(b => !b.classList.contains("unused"));
+
+    let t0 = audioCtx.currentTime;
+
+    blocks.forEach((block, i) => {
+        const notes = block.querySelector(".notes").innerHTML.split(" ");
+        const st = t0 + i * dur;
+
+        seqTimeouts.push(setTimeout(() => {
+            blocks.forEach(b => b.classList.remove("playing"));
+            block.classList.add("playing");
+        }, (st - t0) * 1000));
+
+        seqTimeouts.push(setTimeout(() => {
+            block.classList.remove("playing");
+        }, (st - t0 + dur) * 1000));
+
+        playChord(notes, st, dur);
+    });
+
+    if (loopOn) {
+        const total = blocks.length * dur * 1000;
+        seqTimeouts.push(setTimeout(() => startSequence(), total));
+    }
+}
+
+function stopSequence() {
+    seqTimeouts.forEach(t => clearTimeout(t));
+    seqTimeouts = [];
+    seqRunning = false;
+
+    [...progression.children].forEach(b => b.classList.remove("playing"));
+    if (audioCtx) audioCtx.close();
+}
+
+</script>
+</body>
+</html>
