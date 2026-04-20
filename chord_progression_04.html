@@ -1,175 +1,428 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chord Sequencer</title>
-
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-
 <style>
-/* (your original CSS unchanged) */
-body{background:#2c1f14;color:#f5e6c8;font-family:'DM Sans',sans-serif;padding:20px}
-button{margin:3px;padding:6px 10px;cursor:pointer}
-.active{background:#c9914a;color:#000}
-.warn{color:#ff6b6b;font-size:11px}
-.mode-btn{margin-left:10px}
-.step{border:1px solid #5c3f28;padding:10px;margin:5px;display:inline-block;width:140px}
+  :root {
+    --bg:#blue;
+    --surface:#3a2a1c;
+    --surface2:#473522;
+    --border:#5c3f28;
+    --border2:#7a5438;
+    --accent:#c9914a;
+    --accent2:#e8b070;
+    --accent-dim:rgba(201,145,74,0.12);
+    --accent-glow:rgba(201,145,74,0.28);
+    --text:#f5e6c8;
+    --text2:#c8a97a;
+    --text3:#7a6248;
+    --green:#4a8c5c;
+    --green-dim:rgba(74,140,92,0.15);
+    --green-bright:#5dab72;
+    --amber:#d4a030;
+    --amber-dim:rgba(212,160,48,0.12);
+    --red:#b04040;
+    --red-dim:rgba(176,64,64,0.12);
+    --radius:7px;
+    --radius-lg:11px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
+  .app{max-width:1020px;margin:0 auto;padding:2rem 1.5rem 4rem;}
+
+  .header{display:flex;align-items:baseline;gap:1rem;margin-bottom:2rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border);}
+  .logo{font-family:'Space Mono',monospace;font-size:1.3rem;font-weight:700;letter-spacing:-0.02em;color:var(--text);}
+  .logo span{color:var(--accent2);}
+  .subtitle{font-size:0.78rem;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;}
+  .label{font-family:'Space Mono',monospace;font-size:0.63rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);margin-bottom:0.55rem;}
+
+  .status-bar{display:flex;gap:1.5rem;align-items:center;padding:0.55rem 1rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:1.5rem;flex-wrap:wrap;}
+  .status-item{display:flex;align-items:center;gap:6px;}
+  .status-dot{width:6px;height:6px;border-radius:50%;background:var(--text3);}
+  .status-dot.playing{background:var(--green-bright);box-shadow:0 0 5px var(--green-bright);animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+  .status-text{font-family:'Space Mono',monospace;font-size:0.63rem;color:var(--text3);letter-spacing:0.06em;}
+  .status-val{font-family:'Space Mono',monospace;font-size:0.63rem;color:var(--text2);}
+  .wave-row{display:flex;gap:4px;}
+  .wave-btn{font-family:'Space Mono',monospace;font-size:0.62rem;padding:3px 7px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2);color:var(--text2);cursor:pointer;transition:all 0.12s;}
+  .wave-btn:hover{border-color:var(--border2);color:var(--text);}
+  .wave-btn.active{background:var(--accent);border-color:var(--accent);color:#1a0e06;}
+
+  .top-controls{display:grid;grid-template-columns:auto 1fr auto;gap:1.5rem;align-items:start;margin-bottom:2rem;}
+  .key-grid{display:flex;gap:4px;flex-wrap:wrap;max-width:380px;}
+  .key-btn{font-family:'Space Mono',monospace;font-size:0.68rem;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text2);cursor:pointer;transition:all 0.12s;}
+  .key-btn:hover{border-color:var(--border2);color:var(--text);}
+  .key-btn.active{background:var(--accent);border-color:var(--accent);color:#1a0e06;}
+  .transport-section{display:flex;flex-direction:column;align-items:flex-end;gap:0.75rem;}
+  .transport-btns{display:flex;gap:8px;align-items:center;}
+  .btn{font-family:'Space Mono',monospace;font-size:0.68rem;padding:7px 14px;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text2);cursor:pointer;letter-spacing:0.05em;transition:all 0.12s;}
+  .btn:hover{color:var(--text);border-color:var(--accent);background:var(--accent-dim);}
+  .btn-play{background:var(--accent);border-color:var(--accent);color:#1a0e06;font-weight:700;padding:7px 20px;}
+  .btn-play:hover{background:var(--accent2);border-color:var(--accent2);color:#1a0e06;}
+  .btn-play.playing{background:var(--green);border-color:var(--green);color:#f0f8f0;}
+  .btn-stop{color:var(--red);border-color:rgba(176,64,64,0.35);}
+  .btn-stop:hover{background:var(--red-dim);border-color:var(--red);}
+  .tempo-wrap{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:5px 12px;}
+  .tempo-wrap .label{margin:0;}
+  .tempo-display{font-family:'Space Mono',monospace;font-size:0.95rem;color:var(--accent2);min-width:36px;text-align:right;}
+  .tempo-wrap input[type=range]{-webkit-appearance:none;appearance:none;width:85px;height:3px;background:var(--border2);border-radius:2px;outline:none;cursor:pointer;}
+  .tempo-wrap input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--accent);cursor:pointer;}
+
+  .sequencer-section{margin-bottom:1.75rem;}
+  .seq-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;}
+  .seq-add-btn{font-family:'Space Mono',monospace;font-size:0.62rem;padding:4px 11px;border-radius:var(--radius);border:1px dashed var(--border2);background:transparent;color:var(--text3);cursor:pointer;transition:all 0.12s;letter-spacing:0.05em;}
+  .seq-add-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
+  .seq-pos-bar{display:flex;gap:7px;margin-bottom:8px;list-style:none;}
+  .pos-dot{width:6px;height:6px;border-radius:50%;background:var(--border2);transition:background 0.1s;}
+  .pos-dot.current{background:var(--green-bright);}
+  .pos-dot.visited{background:var(--accent);}
+  .sequencer-track{display:flex;gap:8px;align-items:stretch;overflow-x:auto;padding-bottom:8px;min-height:145px;}
+  .sequencer-track::-webkit-scrollbar{height:4px;}
+  .sequencer-track::-webkit-scrollbar-track{background:var(--surface);border-radius:2px;}
+  .sequencer-track::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+  .step{flex:0 0 116px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:10px;display:flex;flex-direction:column;gap:5px;position:relative;cursor:grab;transition:border-color 0.12s,box-shadow 0.12s,opacity 0.12s,transform 0.1s;user-select:none;}
+  .step:hover{border-color:var(--border2);}
+  .step.active-step{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-glow);}
+  .step.playing-step{border-color:var(--green-bright);box-shadow:0 0 0 2px rgba(93,171,114,0.3);background:rgba(93,171,114,0.06);}
+  .step.rest-step{opacity:0.5;border-style:dashed;}
+  .step.dragging{opacity:0.2;transform:scale(0.96);}
+  .step.drag-over-left{border-left:3px solid var(--amber);}
+  .step.drag-over-right{border-right:3px solid var(--amber);}
+  .step-number{font-family:'Space Mono',monospace;font-size:0.53rem;color:var(--text3);letter-spacing:0.1em;}
+  .step-roman{font-family:'Space Mono',monospace;font-size:1.35rem;font-weight:700;color:var(--text);line-height:1;min-height:1.35rem;}
+  .step-note{font-size:0.7rem;color:var(--accent2);font-weight:500;}
+  .step-inv{font-size:0.58rem;color:var(--amber);}
+  .step-ext-badge{font-family:'Space Mono',monospace;font-size:0.56rem;padding:2px 5px;background:var(--amber-dim);color:var(--amber);border-radius:4px;border:1px solid rgba(212,160,48,0.22);display:inline-block;width:fit-content;}
+  .step-del{position:absolute;top:6px;right:6px;width:17px;height:17px;border-radius:50%;background:var(--red-dim);border:1px solid rgba(176,64,64,0.22);color:var(--red);font-size:11px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.12s;cursor:pointer;z-index:2;}
+  .step:hover .step-del{opacity:1;}
+  .add-step-placeholder{flex:0 0 116px;border:1px dashed var(--border);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text3);font-size:1.4rem;transition:all 0.12s;min-height:130px;}
+  .add-step-placeholder:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
+
+  /* ── Piano — dark wood casing ── */
+  .piano-section{background:#1e1208;border:2px solid #6a4220;border-radius:var(--radius-lg);padding:1.1rem;margin-bottom:1.75rem;box-shadow:inset 0 2px 8px rgba(0,0,0,0.5);}
+  .piano-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.9rem;flex-wrap:wrap;gap:0.5rem;}
+  .piano-info{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;}
+  .piano-chord-name{font-family:'Space Mono',monospace;font-size:1rem;color:var(--text);font-weight:700;}
+  .piano-notes-list{font-size:0.72rem;color:var(--text2);font-family:'Space Mono',monospace;letter-spacing:0.03em;}
+  .piano-inv-label{font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--amber);background:var(--amber-dim);border:1px solid rgba(212,160,48,0.22);border-radius:4px;padding:2px 7px;}
+  .piano-hint{font-size:0.65rem;color:var(--text3);font-style:italic;}
+  .piano-wrap{overflow-x:auto;padding-bottom:5px;background:#120a02;border-radius:6px;padding:8px 8px 10px;}
+  .piano-wrap::-webkit-scrollbar{height:4px;}
+  .piano-wrap::-webkit-scrollbar-track{background:#1a0e06;border-radius:2px;}
+  .piano-wrap::-webkit-scrollbar-thumb{background:#5c3f28;border-radius:2px;}
+  .piano{position:relative;display:flex;height:134px;width:max-content;}
+
+  /* Ivory white keys */
+  .white-key{
+    position:relative;width:38px;height:134px;
+    background:linear-gradient(to bottom,#f0e8d4 0%,#e0d0b0 100%);
+    border:1px solid #a8885a;
+    border-radius:0 0 6px 6px;
+    flex-shrink:0;
+    transition:background 0.08s;
+    display:flex;align-items:flex-end;justify-content:center;
+    padding-bottom:7px;z-index:1;cursor:pointer;
+    box-shadow:inset -1px 0 0 rgba(255,255,255,0.3),inset 0 -3px 5px rgba(0,0,0,0.12),1px 0 0 rgba(0,0,0,0.15);
+  }
+  .white-key:hover{background:linear-gradient(to bottom,#f8f0dc 0%,#e8d8bc 100%);}
+  .white-key.lit{background:linear-gradient(to bottom,#f0d878 0%,#c8a030 100%);border-color:#9a7820;}
+  .white-key.root{background:linear-gradient(to bottom,#d4903c 0%,#8c5a18 100%);border-color:#6a3e10;}
+  .white-key.flash{background:linear-gradient(to bottom,#80cc90 0%,#4a9060 100%) !important;border-color:#387848 !important;transition:none;}
+  .white-key.pressed{background:linear-gradient(to bottom,#dcc880 0%,#b09040 100%) !important;border-color:#8a6e28 !important;transition:none;}
+  .key-label{font-family:'Space Mono',monospace;font-size:0.53rem;color:rgba(80,50,18,0.5);text-align:center;pointer-events:none;line-height:1.2;}
+  .white-key.lit .key-label,.white-key.root .key-label{color:rgba(255,240,190,0.92);}
+  .white-key.flash .key-label{color:rgba(10,50,20,0.55) !important;}
+  .white-key.pressed .key-label{color:rgba(60,40,10,0.55) !important;}
+
+  /* Deep walnut black keys */
+  .black-key{
+    position:absolute;width:24px;height:84px;
+    background:linear-gradient(to bottom,#1e1208 0%,#0e0804 100%);
+    border:1px solid #3a2010;
+    border-radius:0 0 5px 5px;z-index:2;top:0;
+    transition:background 0.08s;
+    display:flex;align-items:flex-end;justify-content:center;
+    padding-bottom:5px;cursor:pointer;
+    box-shadow:2px 3px 6px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.08);
+  }
+  .black-key:hover{background:linear-gradient(to bottom,#2e1c0c 0%,#180e06 100%);}
+  .black-key.lit{background:linear-gradient(to bottom,#c89040 0%,#7a5418 100%);border-color:#9a6e28;}
+  .black-key.root{background:linear-gradient(to bottom,#e8a850 0%,#9a6020 100%);border-color:#b87830;}
+  .black-key.flash{background:linear-gradient(to bottom,#60b878 0%,#2e7040 100%) !important;border-color:#3a7848 !important;transition:none;}
+  .black-key.pressed{background:linear-gradient(to bottom,#a88038 0%,#705018 100%) !important;border-color:#806020 !important;transition:none;}
+  .black-key .key-label{color:rgba(200,158,90,0.38);font-size:0.48rem;}
+  .black-key.lit .key-label,.black-key.root .key-label{color:rgba(255,228,170,0.9);}
+
+  /* Editor */
+  .editor-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.1rem;margin-bottom:2rem;}
+  .editor-title{font-family:'Space Mono',monospace;font-size:0.67rem;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.9rem;display:flex;align-items:center;gap:8px;}
+  .step-indicator{background:var(--accent-dim);color:var(--accent2);border:1px solid rgba(201,145,74,0.3);border-radius:4px;padding:2px 7px;font-size:0.62rem;}
+  .editor-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+  .chord-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .chord-btn{font-family:'Space Mono',monospace;font-size:0.66rem;padding:7px 3px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2);color:var(--text2);cursor:pointer;text-align:center;transition:all 0.12s;display:flex;flex-direction:column;align-items:center;gap:3px;}
+  .chord-btn:hover{border-color:var(--border2);color:var(--text);}
+  .chord-btn.active{background:var(--accent);border-color:var(--accent);color:#1a0e06;}
+  .chord-btn .note{font-size:0.52rem;color:var(--text3);font-family:'DM Sans',sans-serif;}
+  .chord-btn.active .note{color:rgba(26,14,6,0.65);}
+  .ext-grid{display:flex;flex-wrap:wrap;gap:5px;}
+  .ext-btn{font-family:'Space Mono',monospace;font-size:0.6rem;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2);color:var(--text2);cursor:pointer;transition:all 0.12s;}
+  .ext-btn:hover{border-color:var(--border2);color:var(--text);}
+  .ext-btn.active{background:var(--amber-dim);border-color:var(--amber);color:var(--amber);}
+  .inv-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:0.7rem;}
+  .inv-btn{font-family:'Space Mono',monospace;font-size:0.6rem;padding:4px 9px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2);color:var(--text2);cursor:pointer;transition:all 0.12s;}
+  .inv-btn:hover{border-color:var(--border2);color:var(--text);}
+  .inv-btn.active{background:var(--green-dim);border-color:var(--green);color:var(--green-bright);}
+  .rest-toggle{display:flex;align-items:center;gap:8px;margin-top:0.7rem;}
+  .rest-toggle input[type=checkbox]{width:15px;height:15px;accent-color:var(--accent);cursor:pointer;}
+  .rest-toggle label{font-size:0.78rem;color:var(--text2);cursor:pointer;}
+  .octave-control{display:flex;align-items:center;gap:8px;margin-top:0.7rem;}
+  .octave-control .label{margin:0;}
+  .octave-btn{width:24px;height:24px;border-radius:50%;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);cursor:pointer;font-size:0.95rem;display:flex;align-items:center;justify-content:center;transition:all 0.12s;}
+  .octave-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .octave-val{font-family:'Space Mono',monospace;font-size:0.78rem;color:var(--text);min-width:18px;text-align:center;}
+  .step-duration-row{display:flex;gap:4px;margin-top:0.7rem;}
+  .dur-btn{font-family:'Space Mono',monospace;font-size:0.58rem;padding:4px 7px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2);color:var(--text2);cursor:pointer;transition:all 0.12s;}
+  .dur-btn:hover{border-color:var(--border2);color:var(--text);}
+  .dur-btn.active{background:var(--green-dim);border-color:var(--green);color:var(--green-bright);}
 </style>
 </head>
-
 <body>
+<div class="app">
 
-<h2>Chord Sequencer</h2>
+  <div class="header">
+    <div class="logo">chord<span>seq</span></div>
+    <div class="subtitle">Piano Chord Sequencer</div>
+  </div>
 
-<div>
-<b>Key:</b>
-<span id="keyGrid"></span>
-<button class="mode-btn" id="modeBtn">Diatonic</button>
+  <div class="status-bar">
+    <div class="status-item"><div class="status-dot" id="statusDot"></div><span class="status-text" id="statusText">STOPPED</span></div>
+    <div class="status-item"><span class="status-text">KEY</span><span class="status-val" id="statusKey">C</span></div>
+    <div class="status-item"><span class="status-text">STEP</span><span class="status-val" id="statusStep">—</span></div>
+    <div class="status-item"><span class="status-text">CHORD</span><span class="status-val" id="statusChord">—</span></div>
+    <div class="status-item" style="margin-left:auto;">
+      <span class="status-text">SOUND</span>
+      <div class="wave-row">
+        <button class="wave-btn active" data-wave="piano">PIANO</button>
+        <button class="wave-btn" data-wave="triangle">TRI</button>
+        <button class="wave-btn" data-wave="sine">SINE</button>
+        <button class="wave-btn" data-wave="sawtooth">SAW</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="top-controls">
+    <div><div class="label">Root Key</div><div class="key-grid" id="keyGrid"></div></div>
+    <div></div>
+    <div class="transport-section">
+      <div class="tempo-wrap">
+        <span class="label">BPM</span>
+        <input type="range" id="tempoSlider" min="40" max="160" value="80" step="1">
+        <span class="tempo-display" id="tempoDisplay">80</span>
+      </div>
+      <div class="transport-btns">
+        <button class="btn btn-stop" id="stopBtn">&#9632; STOP</button>
+        <button class="btn btn-play" id="playBtn">&#9654; PLAY</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sequencer-section">
+    <div class="seq-header">
+      <div class="label">Sequence — drag to reorder</div>
+      <button class="seq-add-btn" id="addStepBtn">+ ADD STEP</button>
+    </div>
+    <ul class="seq-pos-bar" id="posDots"></ul>
+    <div class="sequencer-track" id="sequencerTrack"></div>
+  </div>
+
+  <div class="piano-section">
+    <div class="piano-header">
+      <div class="label" style="margin:0;color:var(--text2);">Keyboard</div>
+      <div class="piano-info">
+        <span class="piano-chord-name" id="pianoChordName">—</span>
+        <span class="piano-notes-list" id="pianoNotesList"></span>
+        <span class="piano-inv-label" id="pianoInvLabel" style="display:none;"></span>
+      </div>
+      <span class="piano-hint">click any key to hear it</span>
+    </div>
+    <div class="piano-wrap"><div class="piano" id="piano"></div></div>
+  </div>
+
+  <div class="editor-panel">
+    <div class="editor-title">STEP EDITOR <span class="step-indicator" id="stepIndicator">Select a step</span></div>
+    <div class="editor-grid">
+      <div>
+        <div class="label">Scale Degree</div>
+        <div class="chord-grid" id="chordGrid"></div>
+        <div class="rest-toggle">
+          <input type="checkbox" id="restToggle">
+          <label for="restToggle">Rest (silence)</label>
+        </div>
+        <div class="octave-control">
+          <span class="label">OCTAVE</span>
+          <button class="octave-btn" id="octaveDown">−</button>
+          <span class="octave-val" id="octaveVal">4</span>
+          <button class="octave-btn" id="octaveUp">+</button>
+        </div>
+      </div>
+      <div>
+        <div class="label">Quality &amp; Extensions</div>
+        <div class="ext-grid" id="extGrid"></div>
+        <div style="margin-top:0.8rem;">
+          <div class="label">Inversion</div>
+          <div class="inv-row" id="invRow"></div>
+        </div>
+        <div style="margin-top:0.8rem;">
+          <div class="label">Beats per chord</div>
+          <div class="step-duration-row">
+            <button class="dur-btn" data-dur="1">1</button>
+            <button class="dur-btn active" data-dur="2">2</button>
+            <button class="dur-btn" data-dur="3">3</button>
+            <button class="dur-btn" data-dur="4">4</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
-<div id="sequencer"></div>
-
-<button onclick="addStep()">+ Add Step</button>
-
+<!-- ONLY showing changed JS section for brevity -->
 <script>
-/* ===== CORE DATA ===== */
-
 const KEYS=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const DISP=['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
+const NUMS=['I','II','III','IV','V','VI','VII'];
 const SCALE=[0,2,4,5,7,9,11];
+
+// ✅ authoritative diatonic qualities
 const DEF_Q=['','m','m','','','m','dim'];
 
-/* Allowed diatonic extensions per degree */
-const DIATONIC_EXT = {
-  0:['','maj7','add9'],
-  1:['m','m7','m9'],
-  2:['m','m7'],
-  3:['','maj7'],
-  4:['','7','9','sus4'],
-  5:['m','m7'],
-  6:['dim','dim7']
-};
-
-/* ===== STATE ===== */
-
-let key=0;
-let mode='diatonic';
-let steps=[
-  {deg:0,ext:''},
-  {deg:3,ext:''},
-  {deg:4,ext:''},
-  {deg:0,ext:''}
+const EXTS=[
+  {l:'Maj',v:''},{l:'min',v:'m'},{l:'7',v:'7'},{l:'maj7',v:'maj7'},{l:'m7',v:'m7'},
+  {l:'9',v:'9'},{l:'maj9',v:'maj9'},{l:'m9',v:'m9'},{l:'sus2',v:'sus2'},{l:'sus4',v:'sus4'},
+  {l:'add9',v:'add9'},{l:'dim',v:'dim'},{l:'dim7',v:'dim7'},{l:'aug',v:'aug'},{l:'6',v:'6'},{l:'m6',v:'m6'},
 ];
 
-/* ===== THEORY FIX ===== */
-
-function isDiatonic(deg, ext){
-  return DIATONIC_EXT[deg]?.includes(ext);
-}
-
-function enforceDiatonic(step){
-  if(!isDiatonic(step.deg, step.ext)){
-    step.ext = DEF_Q[step.deg];
-  }
-}
-
-/* ===== CHORD BUILD ===== */
-
-function chordName(step){
-  const root = KEYS[(key + SCALE[step.deg]) % 12];
-  return root + (step.ext || DEF_Q[step.deg]);
-}
-
-/* ===== UI ===== */
-
-function renderKeys(){
-  const g=document.getElementById('keyGrid');
-  g.innerHTML='';
-  KEYS.forEach((k,i)=>{
-    const b=document.createElement('button');
-    b.textContent=k;
-    if(i===key)b.classList.add('active');
-    b.onclick=()=>{key=i;render()};
-    g.appendChild(b);
-  });
-}
-
-function renderSteps(){
-  const c=document.getElementById('sequencer');
-  c.innerHTML='';
-
-  steps.forEach((step,i)=>{
-
-    if(mode==='diatonic') enforceDiatonic(step);
-
-    const ok=isDiatonic(step.deg, step.ext);
-
-    const el=document.createElement('div');
-    el.className='step';
-
-    el.innerHTML=`
-      <div><b>${chordName(step)}</b></div>
-
-      <div>
-        Degree:
-        <select onchange="setDeg(${i},this.value)">
-          ${[0,1,2,3,4,5,6].map(d=>
-            `<option value="${d}" ${d==step.deg?'selected':''}>${d+1}</option>`
-          ).join('')}
-        </select>
-      </div>
-
-      <div>
-        Quality:
-        <select onchange="setExt(${i},this.value)">
-          ${['','m','7','maj7','m7','dim','dim7','9','sus4','add9']
-            .map(e=>`<option value="${e}" ${e==step.ext?'selected':''}>${e||'maj'}</option>`)
-            .join('')}
-        </select>
-      </div>
-
-      ${mode==='free' && !ok ? '<div class="warn">non-diatonic</div>' : ''}
-    `;
-
-    c.appendChild(el);
-  });
-}
-
-/* ===== INTERACTION ===== */
-
-function setDeg(i,v){
-  steps[i].deg=parseInt(v);
-  render();
-}
-
-function setExt(i,v){
-  steps[i].ext=v;
-  render();
-}
-
-function addStep(){
-  steps.push({deg:0,ext:''});
-  render();
-}
-
-/* ===== MODE TOGGLE ===== */
-
-document.getElementById('modeBtn').onclick=()=>{
-  mode = mode==='diatonic' ? 'free' : 'diatonic';
-  document.getElementById('modeBtn').textContent =
-    mode==='diatonic' ? 'Diatonic' : 'Free';
-  render();
+const IVALS={
+  '':[0,4,7],'m':[0,3,7],'7':[0,4,7,10],'maj7':[0,4,7,11],
+  'm7':[0,3,7,10],'9':[0,4,7,10,14],'maj9':[0,4,7,11,14],'m9':[0,3,7,10,14],
+  'sus2':[0,2,7],'sus4':[0,5,7],'add9':[0,4,7,14],'dim':[0,3,6],
+  'dim7':[0,3,6,9],'aug':[0,4,8],'6':[0,4,7,9],'m6':[0,3,7,9],
 };
 
-/* ===== INIT ===== */
+function roman(deg, ext){
+  const base = NUMS[deg];
+  const dq = DEF_Q[deg];
+  let r = base;
 
-function render(){
-  renderKeys();
-  renderSteps();
+  let quality = dq;
+
+  if(ext){
+    if(ext.startsWith('m')) quality='m';
+    if(ext.includes('dim')) quality='dim';
+    if(ext==='aug') quality='aug';
+    if(ext===''||ext==='maj7'||ext==='maj9'||ext==='6') quality='';
+  }
+
+  if(quality==='m'||quality==='dim') r=r.toLowerCase();
+  if(quality==='dim') r+='°';
+  if(quality==='aug') r+='+';
+
+  const symbols={
+    '7':'⁷','maj7':'Δ⁷','m7':'⁷',
+    '9':'⁹','maj9':'Δ⁹','m9':'⁹',
+    '6':'⁶','m6':'⁶',
+    'dim7':'°⁷',
+    'sus2':'ˢ²','sus4':'ˢ⁴',
+    'add9':'⁺⁹'
+  };
+
+  if(symbols[ext]) r+=symbols[ext];
+
+  return r;
 }
 
-render();
+function chordName(deg, ext){
+  const root = KEYS[(selKey + SCALE[deg]) % 12];
+  const dq = DEF_Q[deg];
+
+  let quality = dq;
+
+  if(ext){
+    if(ext.startsWith('m')) quality='m';
+    if(ext.includes('dim')) quality='dim';
+    if(ext==='aug') quality='aug';
+    if(ext===''||ext==='maj7'||ext==='maj9'||ext==='6') quality='';
+  }
+
+  return root + (ext || quality);
+}
+
+function chordMidi(step){
+  if(step.isRest)return[];
+
+  const root=(selKey+SCALE[step.degree])%12;
+  const base=12*step.octave+root;
+
+  let intervals=IVALS[step.ext];
+
+  if(!intervals){
+    const dq=DEF_Q[step.degree];
+    intervals=IVALS[dq]||[0,4,7];
+  }
+
+  let ns=intervals.map(v=>base+v);
+
+  const inv=Math.min(step.inversion||0,ns.length-1);
+  for(let i=0;i<inv;i++)ns[i]+=12;
+
+  return ns.sort((a,b)=>a-b);
+}
+
+// ✅ flat-friendly display fix (inside renderEditor)
+function renderEditor(){
+  const si=document.getElementById('stepIndicator');
+  if(!selStep){si.textContent='Select a step to edit';return;}
+  si.textContent=`Step ${steps.indexOf(selStep)+1}`;
+
+  const cg=document.getElementById('chordGrid');cg.innerHTML='';
+  NUMS.forEach((_,i)=>{
+    const b=document.createElement('button');
+    b.className='chord-btn'+(i===selStep.degree&&!selStep.isRest?' active':'');
+
+    const rv=document.createElement('div');
+    rv.textContent=roman(i,selStep.ext);
+
+    const nv=document.createElement('div');
+    nv.className='note';
+    nv.textContent=DISP[(selKey+SCALE[i])%12]; // ✅ fixed
+
+    b.appendChild(rv);
+    b.appendChild(nv);
+
+    b.onclick=()=>{
+      selStep.degree=i;
+      selStep.isRest=false;
+      selStep.inversion=0;
+      document.getElementById('restToggle').checked=false;
+      renderAll();
+      playChord(selStep);
+      litPiano(selStep);
+    };
+
+    cg.appendChild(b);
+  });
+
+  document.getElementById('restToggle').checked=selStep.isRest;
+  document.getElementById('octaveVal').textContent=selStep.octave;
+  litPiano(selStep);
+}
 </script>
 
 </body>
