@@ -1,1 +1,176 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chord Sequencer</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+/* (your original CSS unchanged) */
+body{background:#2c1f14;color:#f5e6c8;font-family:'DM Sans',sans-serif;padding:20px}
+button{margin:3px;padding:6px 10px;cursor:pointer}
+.active{background:#c9914a;color:#000}
+.warn{color:#ff6b6b;font-size:11px}
+.mode-btn{margin-left:10px}
+.step{border:1px solid #5c3f28;padding:10px;margin:5px;display:inline-block;width:140px}
+</style>
+</head>
+
+<body>
+
+<h2>Chord Sequencer</h2>
+
+<div>
+<b>Key:</b>
+<span id="keyGrid"></span>
+<button class="mode-btn" id="modeBtn">Diatonic</button>
+</div>
+
+<div id="sequencer"></div>
+
+<button onclick="addStep()">+ Add Step</button>
+
+<script>
+/* ===== CORE DATA ===== */
+
+const KEYS=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const SCALE=[0,2,4,5,7,9,11];
+const DEF_Q=['','m','m','','','m','dim'];
+
+/* Allowed diatonic extensions per degree */
+const DIATONIC_EXT = {
+  0:['','maj7','add9'],
+  1:['m','m7','m9'],
+  2:['m','m7'],
+  3:['','maj7'],
+  4:['','7','9','sus4'],
+  5:['m','m7'],
+  6:['dim','dim7']
+};
+
+/* ===== STATE ===== */
+
+let key=0;
+let mode='diatonic';
+let steps=[
+  {deg:0,ext:''},
+  {deg:3,ext:''},
+  {deg:4,ext:''},
+  {deg:0,ext:''}
+];
+
+/* ===== THEORY FIX ===== */
+
+function isDiatonic(deg, ext){
+  return DIATONIC_EXT[deg]?.includes(ext);
+}
+
+function enforceDiatonic(step){
+  if(!isDiatonic(step.deg, step.ext)){
+    step.ext = DEF_Q[step.deg];
+  }
+}
+
+/* ===== CHORD BUILD ===== */
+
+function chordName(step){
+  const root = KEYS[(key + SCALE[step.deg]) % 12];
+  return root + (step.ext || DEF_Q[step.deg]);
+}
+
+/* ===== UI ===== */
+
+function renderKeys(){
+  const g=document.getElementById('keyGrid');
+  g.innerHTML='';
+  KEYS.forEach((k,i)=>{
+    const b=document.createElement('button');
+    b.textContent=k;
+    if(i===key)b.classList.add('active');
+    b.onclick=()=>{key=i;render()};
+    g.appendChild(b);
+  });
+}
+
+function renderSteps(){
+  const c=document.getElementById('sequencer');
+  c.innerHTML='';
+
+  steps.forEach((step,i)=>{
+
+    if(mode==='diatonic') enforceDiatonic(step);
+
+    const ok=isDiatonic(step.deg, step.ext);
+
+    const el=document.createElement('div');
+    el.className='step';
+
+    el.innerHTML=`
+      <div><b>${chordName(step)}</b></div>
+
+      <div>
+        Degree:
+        <select onchange="setDeg(${i},this.value)">
+          ${[0,1,2,3,4,5,6].map(d=>
+            `<option value="${d}" ${d==step.deg?'selected':''}>${d+1}</option>`
+          ).join('')}
+        </select>
+      </div>
+
+      <div>
+        Quality:
+        <select onchange="setExt(${i},this.value)">
+          ${['','m','7','maj7','m7','dim','dim7','9','sus4','add9']
+            .map(e=>`<option value="${e}" ${e==step.ext?'selected':''}>${e||'maj'}</option>`)
+            .join('')}
+        </select>
+      </div>
+
+      ${mode==='free' && !ok ? '<div class="warn">non-diatonic</div>' : ''}
+    `;
+
+    c.appendChild(el);
+  });
+}
+
+/* ===== INTERACTION ===== */
+
+function setDeg(i,v){
+  steps[i].deg=parseInt(v);
+  render();
+}
+
+function setExt(i,v){
+  steps[i].ext=v;
+  render();
+}
+
+function addStep(){
+  steps.push({deg:0,ext:''});
+  render();
+}
+
+/* ===== MODE TOGGLE ===== */
+
+document.getElementById('modeBtn').onclick=()=>{
+  mode = mode==='diatonic' ? 'free' : 'diatonic';
+  document.getElementById('modeBtn').textContent =
+    mode==='diatonic' ? 'Diatonic' : 'Free';
+  render();
+};
+
+/* ===== INIT ===== */
+
+function render(){
+  renderKeys();
+  renderSteps();
+}
+
+render();
+</script>
+
+</body>
+</html>
