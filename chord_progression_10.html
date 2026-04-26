@@ -1,0 +1,362 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Chord Sequencer Piano</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+body{
+  margin:0;
+  background:#2c1f14;
+  color:#f5e6c8;
+  font-family:"Roboto Mono", monospace;
+}
+
+#wrap{
+  padding:12px;
+}
+
+.panel{
+  background:#1e1208;
+  border:1px solid #3a2a1d;
+  padding:10px;
+  margin-bottom:10px;
+}
+
+button, select, input{
+  background:#2c1f14;
+  color:#f5e6c8;
+  border:1px solid #c9914a;
+  padding:4px;
+}
+
+#piano{
+  position:relative;
+  height:180px;
+  margin-top:10px;
+  user-select:none;
+}
+
+.white{
+  position:absolute;
+  width:40px;
+  height:180px;
+  background:#f5e6c8;
+  border:1px solid #000;
+  box-sizing:border-box;
+  z-index:1;
+}
+
+.black{
+  position:absolute;
+  width:24px;
+  height:110px;
+  background:#000;
+  z-index:2;
+}
+
+.keyActive{
+  background:#e8b070 !important;
+}
+
+.rootNote{
+  background:#c9914a !important;
+}
+
+.chordTone{
+  background:#e8b070 !important;
+}
+
+#seq{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+}
+
+.step{
+  padding:8px;
+  border:1px solid #c9914a;
+  background:#2c1f14;
+  cursor:pointer;
+}
+
+.step.active{
+  background:#c9914a;
+  color:#000;
+}
+
+.small{
+  font-size:12px;
+  color:#e8b070;
+}
+</style>
+</head>
+
+<body>
+<div id="wrap">
+
+<div class="panel">
+<button id="playBtn">Play</button>
+<button id="addBtn">Add Step</button>
+BPM <input id="bpm" type="range" min="40" max="160" value="80">
+Beats <select id="beats">
+<option>1</option>
+<option selected>2</option>
+<option>3</option>
+<option>4</option>
+</select>
+Mode <select id="mode"></select>
+</div>
+
+<div class="panel" id="seq"></div>
+
+<div class="panel small" id="info">Select a chord</div>
+
+<div id="piano"></div>
+
+</div>
+
+<script>
+var audioCtx;
+function initAudio(){
+  if(!audioCtx){
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+}
+
+function noteFreq(m){
+  return 440 * Math.pow(2,(m-69)/12);
+}
+
+var notes = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+
+var modeData = {
+  "Major":[0,2,4,5,7,9,11],
+  "Natural Minor":[0,2,3,5,7,8,10],
+  "Harmonic Minor":[0,2,3,5,7,8,11],
+  "Melodic Minor":[0,2,3,5,7,9,11],
+  "Dorian":[0,2,3,5,7,9,10],
+  "Mixolydian":[0,2,4,5,7,9,10],
+  "Lydian":[0,2,4,6,7,9,11],
+  "Phrygian":[0,1,3,5,7,8,10],
+  "Locrian":[0,1,3,5,6,8,10]
+};
+
+var modeNames = Object.keys(modeData);
+
+var modeSel = document.getElementById("mode");
+for(var i=0;i<modeNames.length;i++){
+  var o=document.createElement("option");
+  o.value=modeNames[i];
+  o.innerHTML=modeNames[i];
+  modeSel.appendChild(o);
+}
+modeSel.value="Major";
+
+var rootMidi=60;
+
+function buildScale(mode){
+  var ints = modeData[mode];
+  var scale=[];
+  for(var i=0;i<ints.length;i++){
+    scale.push(rootMidi+ints[i]);
+  }
+  return scale;
+}
+
+function chordFromDegree(scale, deg){
+  var i = deg-1;
+  var a=scale[i%7];
+  var b=scale[(i+2)%7];
+  var c=scale[(i+4)%7];
+  return [a,b,c];
+}
+
+function roman(deg){
+  var r=["I","II","III","IV","V","VI","VII"];
+  return r[deg-1];
+}
+
+var steps=[
+  {deg:1},{deg:4},{deg:5},{deg:1}
+];
+
+function renderSteps(){
+  var seq=document.getElementById("seq");
+  seq.innerHTML="";
+  for(var i=0;i<steps.length;i++){
+    (function(i){
+      var d=document.createElement("div");
+      d.className="step";
+      d.innerHTML=roman(steps[i].deg)+"<br><span class='small'>Chord</span>";
+      d.onclick=function(){selectStep(i);};
+      d.draggable=true;
+      d.ondragstart=function(e){e.dataTransfer.setData("i",i);};
+      d.ondragover=function(e){e.preventDefault();};
+      d.ondrop=function(e){
+        var from=parseInt(e.dataTransfer.getData("i"));
+        var tmp=steps[from];
+        steps.splice(from,1);
+        steps.splice(i,0,tmp);
+        renderSteps();
+      };
+      seq.appendChild(d);
+    })(i);
+  }
+}
+
+var selected=-1;
+function selectStep(i){
+  selected=i;
+  renderSteps();
+  playChord(steps[i].deg);
+  showInfo(steps[i].deg);
+}
+
+function showInfo(deg){
+  var el=document.getElementById("info");
+  el.innerHTML="Degree "+roman(deg)+" | Harmonic function: "+(deg==1?"Tonic":deg==4?"Subdominant":deg==5?"Dominant":"Tonic function");
+}
+
+function playChord(deg){
+  initAudio();
+  var scale=buildScale(modeSel.value);
+  var chord=chordFromDegree(scale,deg);
+
+  for(var i=0;i<chord.length;i++){
+    playNote(chord[i], i==0);
+  }
+  highlightChord(chord);
+}
+
+function playNote(midi, isRoot){
+  var f=noteFreq(midi);
+  var o=audioCtx.createOscillator();
+  var g=audioCtx.createGain();
+
+  o.type="sine";
+  o.frequency.value=f;
+
+  g.gain.value=0.2;
+  g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+1.2);
+
+  o.connect(g);
+  g.connect(audioCtx.destination);
+
+  o.start();
+  o.stop(audioCtx.currentTime+1.2);
+
+  flashKey(midi, isRoot);
+}
+
+var keyMap={};
+
+function flashKey(midi,isRoot){
+  var el=keyMap[midi];
+  if(!el) return;
+  el.classList.add(isRoot?"rootNote":"chordTone");
+  setTimeout(function(){
+    el.classList.remove("rootNote");
+    el.classList.remove("chordTone");
+  },300);
+}
+
+function highlightChord(ch){
+  for(var k in keyMap){
+    keyMap[k].classList.remove("chordTone");
+    keyMap[k].classList.remove("rootNote");
+  }
+  if(keyMap[ch[0]]) keyMap[ch[0]].classList.add("rootNote");
+  for(var i=1;i<ch.length;i++){
+    if(keyMap[ch[i]]) keyMap[ch[i]].classList.add("chordTone");
+  }
+}
+
+function buildPiano(){
+  var piano=document.getElementById("piano");
+  piano.innerHTML="";
+
+  var start=48; // C3
+  var whiteIndex=0;
+
+  var whitePositions={};
+  var blacks=[];
+
+  for(var i=0;i<36;i++){
+    var midi=start+i;
+    var pc=midi%12;
+    var isBlack=[1,3,6,8,10].indexOf(pc)!=-1;
+
+    if(!isBlack){
+      var w=document.createElement("div");
+      w.className="white";
+      w.style.left=(whiteIndex*40)+"px";
+      (function(m,w){
+        w.onmousedown=function(){playNote(m,true);};
+        keyMap[m]=w;
+      })(midi,w);
+      piano.appendChild(w);
+      whitePositions[midi]=whiteIndex;
+      whiteIndex++;
+    }
+  }
+
+  for(var i=0;i<36;i++){
+    var midi=start+i;
+    var pc=midi%12;
+    var isBlack=[1,3,6,8,10].indexOf(pc)!=-1;
+
+    if(isBlack){
+      var b=document.createElement("div");
+      b.className="black";
+
+      var baseWhite=whitePositions[midi-1] || 0;
+      b.style.left=(baseWhite*40+26)+"px";
+
+      (function(m,b){
+        b.onmousedown=function(){playNote(m,false);};
+        keyMap[m]=b;
+      })(midi,b);
+
+      piano.appendChild(b);
+    }
+  }
+}
+
+var playBtn=document.getElementById("playBtn");
+var addBtn=document.getElementById("addBtn");
+
+var playing=false;
+var idx=0;
+var timer;
+
+playBtn.onclick=function(){
+  playing=!playing;
+  if(playing) loop(); else clearTimeout(timer);
+};
+
+function loop(){
+  var bpm=parseInt(document.getElementById("bpm").value);
+  var beat=parseInt(document.getElementById("beats").value);
+  var stepTime=(60000/bpm)*beat;
+
+  selectStep(idx);
+  idx++;
+  if(idx>=steps.length) idx=0;
+
+  timer=setTimeout(loop,stepTime);
+}
+
+addBtn.onclick=function(){
+  steps.push({deg:1});
+  renderSteps();
+};
+
+buildPiano();
+renderSteps();
+</script>
+
+</body>
+</html>
