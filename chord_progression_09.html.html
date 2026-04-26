@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chord Sequencer</title>
+<style>
+body{margin:0;padding:0;background:#2c1f14;color:#f5e6c8;font-family:Arial,Helvetica,sans-serif;min-height:100vh;}
+.app{max-width:1020px;margin:0 auto;padding:1.5rem;}
+h1{font-size:1.3rem;font-weight:700;letter-spacing:-0.02em;margin-bottom:0.3rem;}
+h1 span{color:#e8b070;}
+.sub{font-size:0.72rem;color:#7a6248;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:1.5rem;}
+.lbl{font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:#7a6248;margin-bottom:0.4rem;font-family:'Courier New',monospace;}
+hr{border:none;border-top:1px solid #5c3f28;margin:1.2rem 0;}
+
+.sbar{display:flex;gap:1rem;align-items:center;padding:0.5rem 0.9rem;background:#3a2a1c;border:1px solid #5c3f28;border-radius:6px;margin-bottom:1.2rem;flex-wrap:wrap;}
+.si{display:flex;align-items:center;gap:5px;font-size:0.6rem;font-family:'Courier New',monospace;color:#7a6248;}
+.si b{color:#c8a97a;}
+.sdot{width:6px;height:6px;border-radius:50%;background:#7a6248;display:inline-block;}
+.sdot.on{background:#5dab72;box-shadow:0 0 4px #5dab72;}
+.wrow{display:flex;gap:4px;margin-left:auto;}
+.wbtn{font-size:0.6rem;padding:3px 6px;border:1px solid #5c3f28;border-radius:5px;background:#473522;color:#c8a97a;cursor:pointer;font-family:'Courier New',monospace;}
+.wbtn.on{background:#c9914a;border-color:#c9914a;color:#1a0e06;}
+
+.toprow{display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1.2rem;align-items:start;}
+.keysec{flex:1;min-width:260px;}
+.modesec{flex:1;min-width:260px;}
+.transec{display:flex;flex-direction:column;gap:0.6rem;align-items:flex-end;}
+.kgrid{display:flex;gap:4px;flex-wrap:wrap;}
+.kbtn{font-size:0.65rem;padding:4px 7px;border:1px solid #5c3f28;border-radius:5px;background:#3a2a1c;color:#c8a97a;cursor:pointer;font-family:'Courier New',monospace;}
+.kbtn.on{background:#c9914a;border-color:#c9914a;color:#1a0e06;}
+.mgrid{display:flex;gap:4px;flex-wrap:wrap;}
+.mbtn{font-size:0.6rem;padding:4px 8px;border:1px solid #5c3f28;border-radius:5px;background:#3a2a1c;color:#c8a97a;cursor:pointer;font-family:'Courier New',monospace;}
+.mbtn.on{background:#c9914a;border-color:#c9914a;color:#1a0e06;}
+.minfo{background:#473522;border:1px solid #5c3f28;border-radius:5px;padding:7px 10px;font-size:0.7rem;color:#c8a97a;line-height:1.5;margin-top:0.5rem;}
+.minfo b{color:#e8b070;}
+.mnotes{font-family:'Courier New',monospace;font-size:0.62rem;color:#7a6248;margin-top:3px;}
+
+.tbtns{display:flex;gap:6px;}
+.pbtn{font-size:0.68rem;padding:7px 16px;border-radius:5px;border:1px solid #c9914a;background:#c9914a;color:#1a0e06;font-weight:700;cursor:pointer;font-family:'Courier New',monospace;}
+.pbtn.on{background:#4a8c5c;border-color:#4a8c5c;color:#fff;}
+.sbtn{font-size:0.68rem;padding:7px 12px;border-radius:5px;border:1px solid #7a3030;background:#473522;color:#b04040;cursor:pointer;font-family:'Courier New',monospace;}
+.tempow{display:flex;align-items:center;gap:8px;background:#3a2a1c;border:1px solid #5c3f28;border-radius:5px;padding:5px 10px;}
+.tempow input[type=range]{-webkit-appearance:none;appearance:none;width:80px;height:3px;background:#7a5438;border-radius:2px;outline:none;cursor:pointer;}
+.tempow input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:#c9914a;cursor:pointer;}
+.tempov{font-size:0.9rem;color:#e8b070;min-width:30px;text-align:right;font-family:'Courier New',monospace;}
+
+.seqhdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem;}
+.addsbtn{font-size:0.6rem;padding:3px 10px;border:1px dashed #7a5438;border-radius:5px;background:transparent;color:#7a6248;cursor:pointer;font-family:'Courier New',monospace;}
+.addsbtn:hover{border-color:#c9914a;color:#c9914a;}
+.posbar{display:flex;gap:5px;list-style:none;margin-bottom:6px;padding:0;}
+.pdot{width:6px;height:6px;border-radius:50%;background:#5c3f28;}
+.pdot.cur{background:#5dab72;}
+.pdot.vis{background:#c9914a;}
+.seqtrack{display:flex;gap:7px;overflow-x:auto;padding-bottom:8px;min-height:145px;align-items:stretch;}
+.seqtrack::-webkit-scrollbar{height:4px;}
+.seqtrack::-webkit-scrollbar-thumb{background:#7a5438;border-radius:2px;}
+
+.step{flex:0 0 118px;background:#3a2a1c;border:1px solid #5c3f28;border-radius:9px;padding:9px;display:flex;flex-direction:column;gap:4px;position:relative;cursor:grab;user-select:none;transition:border-color 0.12s;}
+.step:hover{border-color:#7a5438;}
+.step.sel{border-color:#c9914a;box-shadow:0 0 0 2px rgba(201,145,74,0.25);}
+.step.playing{border-color:#5dab72;box-shadow:0 0 0 2px rgba(93,171,114,0.25);background:rgba(93,171,114,0.05);}
+.step.rest{opacity:0.5;border-style:dashed;}
+.step.dragging{opacity:0.2;}
+.step.dl{border-left:3px solid #d4a030;}
+.step.dr{border-right:3px solid #d4a030;}
+.snum{font-size:0.5rem;color:#7a6248;font-family:'Courier New',monospace;letter-spacing:0.08em;}
+.sroman{font-size:1.3rem;font-weight:700;color:#f5e6c8;line-height:1;min-height:1.3rem;font-family:'Courier New',monospace;}
+.sname{font-size:0.68rem;color:#e8b070;font-weight:500;}
+.sfn{font-size:0.58rem;color:#7a6248;}
+.sbadge{font-size:0.54rem;padding:2px 4px;border-radius:3px;display:inline-block;margin-top:1px;font-family:'Courier New',monospace;}
+.sbadge.d{background:rgba(74,140,92,0.15);color:#5dab72;border:1px solid rgba(93,171,114,0.25);}
+.sbadge.b{background:rgba(138,74,154,0.15);color:#c07ad4;border:1px solid rgba(138,74,154,0.3);}
+.sinv{font-size:0.56rem;color:#d4a030;}
+.sdots{display:flex;gap:3px;margin-top:2px;}
+.sdot2{width:5px;height:5px;border-radius:50%;background:#5c3f28;}
+.delbtn{position:absolute;top:5px;right:5px;width:16px;height:16px;border-radius:50%;background:rgba(176,64,64,0.12);border:1px solid rgba(176,64,64,0.2);color:#b04040;font-size:10px;display:flex;align-items:center;justify-content:center;opacity:0;cursor:pointer;transition:opacity 0.12s;}
+.step:hover .delbtn{opacity:1;}
+.addph{flex:0 0 118px;border:1px dashed #5c3f28;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#7a6248;font-size:1.4rem;transition:all 0.12s;min-height:130px;}
+.addph:hover{border-color:#c9914a;color:#c9914a;background:rgba(201,145,74,0.08);}
+
+.pianosec{background:#1e1208;border:2px solid #6a4220;border-radius:9px;padding:1rem;margin-bottom:1.2rem;}
+.pianohdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.8rem;flex-wrap:wrap;gap:0.5rem;}
+.pianoinfo{display:flex;gap:0.8rem;align-items:center;flex-wrap:wrap;}
+.pcname{font-size:0.95rem;color:#f5e6c8;font-weight:700;font-family:'Courier New',monospace;}
+.pnlist{font-size:0.68rem;color:#c8a97a;font-family:'Courier New',monospace;}
+.pinvlbl{font-size:0.6rem;color:#d4a030;background:rgba(212,160,48,0.12);border:1px solid rgba(212,160,48,0.2);border-radius:4px;padding:2px 6px;font-family:'Courier New',monospace;}
+.phint{font-size:0.62rem;color:#7a6248;font-style:italic;}
+.pianowrap{overflow-x:auto;background:#120a02;border-radius:5px;padding:8px 8px 10px;-webkit-overflow-scrolling:touch;}
+.pianowrap::-webkit-scrollbar{height:4px;}
+.pianowrap::-webkit-scrollbar-thumb{background:#5c3f28;border-radius:2px;}
+.piano{position:relative;display:flex;height:132px;}
+
+.wk{position:relative;width:38px;height:132px;background:linear-gradient(to bottom,#f0e8d4,#e0d0b0);border:1px solid #a8885a;border-radius:0 0 6px 6px;flex-shrink:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;z-index:1;cursor:pointer;box-shadow:inset -1px 0 0 rgba(255,255,255,0.3),1px 0 0 rgba(0,0,0,0.15);}
+.wk:hover{background:linear-gradient(to bottom,#f8f0dc,#e8d8bc);}
+.wk.lit{background:linear-gradient(to bottom,#f0d878,#c8a030);border-color:#9a7820;}
+.wk.root{background:linear-gradient(to bottom,#d4903c,#8c5a18);border-color:#6a3e10;}
+.wk.flash{background:linear-gradient(to bottom,#80cc90,#4a9060) !important;border-color:#387848 !important;}
+.wk.pressed{background:linear-gradient(to bottom,#dcc880,#b09040) !important;border-color:#8a6e28 !important;}
+.klbl{font-size:0.5rem;color:rgba(80,50,18,0.5);text-align:center;pointer-events:none;line-height:1.2;font-family:'Courier New',monospace;}
+.wk.lit .klbl,.wk.root .klbl{color:rgba(255,240,190,0.9);}
+.wk.flash .klbl,.wk.pressed .klbl{color:rgba(10,40,15,0.5) !important;}
+
+.bk{position:absolute;width:24px;height:82px;background:linear-gradient(to bottom,#1e1208,#0e0804);border:1px solid #3a2010;border-radius:0 0 5px 5px;z-index:2;top:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;cursor:pointer;box-shadow:2px 3px 6px rgba(0,0,0,0.6);}
+.bk:hover{background:linear-gradient(to bottom,#2e1c0c,#180e06);}
+.bk.lit{background:linear-gradient(to bottom,#c89040,#7a5418);border-color:#9a6e28;}
+.bk.root{background:linear-gradient(to bottom,#e8a850,#9a6020);border-color:#b87830;}
+.bk.flash{background:linear-gradient(to bottom,#60b878,#2e7040) !important;border-color:#3a7848 !important;}
+.bk.pressed{background:linear-gradient(to bottom,#a88038,#705018) !important;border-color:#806020 !important;}
+.bk .klbl{color:rgba(200,158,90,0.35);font-size:0.46rem;}
+.bk.lit .klbl,.bk.root .klbl{color:rgba(255,228,170,0.9);}
+
+.edpanel{background:#3a2a1c;border:1px solid #5c3f28;border-radius:9px;padding:1rem;margin-bottom:1.5rem;}
+.edtitle{font-size:0.65rem;color:#7a6248;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.8rem;display:flex;align-items:center;gap:8px;font-family:'Courier New',monospace;}
+.stepind{background:rgba(201,145,74,0.12);color:#e8b070;border:1px solid rgba(201,145,74,0.3);border-radius:4px;padding:2px 7px;font-size:0.6rem;}
+.thnote{font-size:0.7rem;color:#c8a97a;background:#473522;border:1px solid #5c3f28;border-radius:5px;padding:6px 10px;line-height:1.5;margin-bottom:0.8rem;}
+.thnote .fnlbl{font-size:0.6rem;color:#c9914a;text-transform:uppercase;letter-spacing:0.05em;font-family:'Courier New',monospace;}
+.edgrid{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;}
+.deggrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.degbtn{font-size:0.63rem;padding:7px 2px;border:1px solid #5c3f28;border-radius:5px;background:#473522;color:#c8a97a;cursor:pointer;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;font-family:'Courier New',monospace;}
+.degbtn:hover{border-color:#7a5438;color:#f5e6c8;}
+.degbtn.on{background:#c9914a;border-color:#c9914a;color:#1a0e06;}
+.degnote{font-size:0.5rem;color:#7a6248;font-family:Arial,sans-serif;}
+.degbtn.on .degnote{color:rgba(26,14,6,0.6);}
+.extseclbl{font-size:0.55rem;letter-spacing:0.08em;text-transform:uppercase;color:#7a6248;margin:0.5rem 0 0.3rem;font-family:'Courier New',monospace;}
+.extgrid{display:flex;flex-wrap:wrap;gap:4px;}
+.extbtn{font-size:0.58rem;padding:4px 7px;border-radius:5px;cursor:pointer;font-family:'Courier New',monospace;}
+.extbtn.dt{border:1px solid #5c3f28;background:#473522;color:#c8a97a;}
+.extbtn.dt:hover{border-color:#4a8c5c;color:#5dab72;}
+.extbtn.dt.on{background:rgba(74,140,92,0.15);border-color:#4a8c5c;color:#5dab72;}
+.extbtn.bw{border:1px dashed rgba(138,74,154,0.4);background:transparent;color:#8a6a8a;}
+.extbtn.bw:hover{border-color:#8a4a9a;color:#c07ad4;}
+.extbtn.bw.on{background:rgba(138,74,154,0.15);border-color:#8a4a9a;color:#c07ad4;border-style:solid;}
+.bwwarn{font-size:0.63rem;color:#c07ad4;background:rgba(138,74,154,0.12);border:1px solid rgba(138,74,154,0.25);border-radius:5px;padding:5px 8px;margin-top:0.4rem;display:none;line-height:1.4;}
+.bwwarn.show{display:block;}
+.invrow{display:flex;gap:4px;flex-wrap:wrap;margin-top:0.5rem;}
+.invbtn{font-size:0.58rem;padding:4px 8px;border:1px solid #5c3f28;border-radius:5px;background:#473522;color:#c8a97a;cursor:pointer;font-family:'Courier New',monospace;}
+.invbtn:hover{border-color:#7a5438;color:#f5e6c8;}
+.invbtn.on{background:rgba(74,140,92,0.15);border-color:#4a8c5c;color:#5dab72;}
+.resttog{display:flex;align-items:center;gap:7px;margin-top:0.5rem;}
+.resttog input{width:14px;height:14px;accent-color:#c9914a;cursor:pointer;}
+.resttog label{font-size:0.75rem;color:#c8a97a;cursor:pointer;}
+.octctrl{display:flex;align-items:center;gap:7px;margin-top:0.5rem;}
+.octbtn{width:22px;height:22px;border-radius:50%;border:1px solid #7a5438;background:#473522;color:#c8a97a;cursor:pointer;font-size:0.9rem;display:flex;align-items:center;justify-content:center;}
+.octbtn:hover{border-color:#c9914a;color:#c9914a;}
+.octval{font-size:0.75rem;color:#f5e6c8;min-width:16px;text-align:center;font-family:'Courier New',monospace;}
+.durrow{display:flex;gap:4px;margin-top:0.5rem;}
+.durbtn{font-size:0.56rem;padding:4px 7px;border:1px solid #5c3f28;border-radius:5px;background:#473522;color:#c8a97a;cursor:pointer;font-family:'Courier New',monospace;}
+.durbtn:hover{border-color:#7a5438;color:#f5e6c8;}
+.durbtn.on{background:rgba(74,140,92,0.15);border-color:#4a8c5c;color:#5dab72;}
+</style>
+</head>
+<body>
+<div class="app">
+
+<h1>chord<span>seq</span></h1>
+<div class="sub">Music Theory Chord Sequencer</div>
+
+<div class="sbar">
+  <div class="si"><span class="sdot" id="sdot"></span>&nbsp;<span id="stxt">STOPPED</span></div>
+  <div class="si">KEY&nbsp;<b id="skey">C</b></div>
+  <div class="si">MODE&nbsp;<b id="smode">Major</b></div>
+  <div class="si">STEP&nbsp;<b id="sstep">-</b></div>
+  <div class="si">CHORD&nbsp;<b id="schord">-</b></div>
+  <div class="wrow">
+    <button class="wbtn on" data-w="piano">PIANO</button>
+    <button class="wbtn" data-w="triangle">TRI</button>
+    <button class="wbtn" data-w="sine">SINE</button>
+    <button class="wbtn" data-w="sawtooth">SAW</button>
+  </div>
+</div>
+
+<div class="toprow">
+  <div class="keysec">
+    <div class="lbl">Root Key</div>
+    <div class="kgrid" id="keyGrid"></div>
+  </div>
+  <div class="modesec">
+    <div class="lbl">Scale / Mode</div>
+    <div class="mgrid" id="modeGrid"></div>
+    <div class="minfo" id="modeInfo"></div>
+  </div>
+  <div class="transec">
+    <div class="tempow">
+      <span class="lbl" style="margin:0;">BPM</span>
+      <input type="range" id="bpmSlider" min="40" max="160" value="80">
+      <span class="tempov" id="bpmVal">80</span>
+    </div>
+    <div class="tbtns">
+      <button class="sbtn" id="stopBtn">&#9632; STOP</button>
+      <button class="pbtn" id="playBtn">&#9654; PLAY</button>
+    </div>
+  </div>
+</div>
+
+<hr>
+
+<div class="seqhdr">
+  <div class="lbl" style="margin:0;">Sequence</div>
+  <button class="addsbtn" id="addStepBtn">+ ADD STEP</button>
+</div>
+<ul class="posbar" id="posBar"></ul>
+<div class="seqtrack" id="seqTrack"></div>
+
+<hr>
+
+<div class="pianosec">
+  <div class="pianohdr">
+    <div class="lbl" style="margin:0;color:#c8a97a;">Keyboard</div>
+    <div class="pianoinfo">
+      <span class="pcname" id="pcName">-</span>
+      <span class="pnlist" id="pnList"></span>
+      <span class="pinvlbl" id="pInvLbl" style="display:none;"></span>
+    </div>
+    <span class="phint">click any key to hear it</span>
+  </div>
+  <div class="pianowrap"><div class="piano" id="piano"></div></div>
+</div>
+
+<div class="edpanel">
+  <div class="edtitle">STEP EDITOR&nbsp;<span class="stepind" id="stepInd">Select a step</span></div>
+  <div class="thnote" id="thNote" style="display:none;"></div>
+  <div class="edgrid">
+    <div>
+      <div class="lbl">Scale Degree</div>
+      <div class="deggrid" id="degGrid"></div>
+      <div class="resttog">
+        <input type="checkbox" id="restCb">
+        <label for="restCb">Rest (silence)</label>
+      </div>
+      <div class="octctrl">
+        <span class="lbl" style="margin:0;">OCTAVE</span>
+        <button class="octbtn" id="octDn">-</button>
+        <span class="octval" id="octVal">4</span>
+        <button class="octbtn" id="octUp">+</button>
+      </div>
+      <div style="margin-top:0.5rem;">
+        <div class="lbl">Inversion</div>
+        <div class="invrow" id="invRow"></div>
+      </div>
+      <div style="margin-top:0.5rem;">
+        <div class="lbl">Beats per chord</div>
+        <div class="durrow">
+          <button class="durbtn" data-d="1">1</button>
+          <button class="durbtn on" data-d="2">2</button>
+          <button class="durbtn" data-d="3">3</button>
+          <button class="durbtn" data-d="4">4</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="lbl">Extensions</div>
+      <div class="extseclbl">Diatonic (in scale)</div>
+      <div class="extgrid" id="extDiat"></div>
+      <div class="extseclbl">Borrowed / Non-diatonic</div>
+      <div class="extgrid" id="extBorr"></div>
+      <div class="bwwarn" id="bwWarn"></div>
+    </div>
+  </div>
+</div>
+
+</div>
+<script>
+var CHR   = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+var DKEYS = ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
+
+var MODES = {
+  'Major':         {iv:[0,2,4,5,7,9,11], desc:'The foundation of Western harmony. Bright and stable. All 7 chords share the same scale.', ch:'Bright and stable'},
+  'Natural Minor': {iv:[0,2,3,5,7,8,10], desc:'Most common minor scale. V chord is minor - softer dominant. Dark and melancholic.', ch:'Dark and melancholic'},
+  'Harmonic Minor':{iv:[0,2,3,5,7,8,11], desc:'Natural minor with raised 7th. Creates a MAJOR V chord with a leading tone - the strongest resolution to i. Essential for tonal minor writing.', ch:'Minor + raised 7th gives major V'},
+  'Melodic Minor': {iv:[0,2,3,5,7,9,11], desc:'Minor with raised 6th and 7th (ascending form). Removes the augmented 2nd of harmonic minor. Major V and major IV. The jazz minor scale.', ch:'Minor + raised 6th and 7th'},
+  'Dorian':        {iv:[0,2,3,5,7,9,10], desc:'Minor with raised 6th. IV chord is major. Brighter than natural minor. Common in jazz, funk, Celtic and rock.', ch:'Minor + raised 6th'},
+  'Mixolydian':    {iv:[0,2,4,5,7,9,10], desc:'Major with flat 7th. Gives a major I but relaxed dominant feel. Very common in blues, rock and folk.', ch:'Major + flat 7th'},
+  'Lydian':        {iv:[0,2,4,6,7,9,11], desc:'Major with raised 4th. Dreamy, floating quality. Common in film music. The tritone above the tonic gives it lift.', ch:'Major + raised 4th'},
+  'Phrygian':      {iv:[0,1,3,5,7,8,10], desc:'Minor with flat 2nd. The major bII chord is the defining sound. Very dark. Iconic in flamenco and metal.', ch:'Minor + flat 2nd'},
+  'Locrian':       {iv:[0,1,3,5,6,8,10], desc:'Diminished tonic. Extremely unstable as a key centre. Rarely used tonally but important to understand as degree VII of major.', ch:'Diminished tonic'}
+};
+var MNAMES = Object.keys(MODES);
+
+var TRIAD = {
+  'Major':         ['maj','min','min','maj','maj','min','dim'],
+  'Natural Minor': ['min','dim','maj','min','min','maj','maj'],
+  'Harmonic Minor':['min','dim','aug','min','maj','maj','dim'],
+  'Melodic Minor': ['min','min','aug','maj','maj','dim','dim'],
+  'Dorian':        ['min','min','maj','maj','min','dim','maj'],
+  'Mixolydian':    ['maj','min','dim','maj','min','min','maj'],
+  'Lydian':        ['maj','maj','min','dim','maj','min','min'],
+  'Phrygian':      ['min','maj','maj','min','dim','maj','min'],
+  'Locrian':       ['dim','maj','min','min','maj','maj','min']
+};
+
+var SEVENTH = {
+  'Major':         ['maj7','min7','min7','maj7','dom7','min7','hdim7'],
+  'Natural Minor': ['min7','hdim7','maj7','min7','min7','maj7','dom7'],
+  'Harmonic Minor':['mmaj7','hdim7','augmaj7','min7','dom7','maj7','dim7'],
+  'Melodic Minor': ['mmaj7','min7','augmaj7','dom7','dom7','hdim7','hdim7'],
+  'Dorian':        ['min7','min7','maj7','dom7','min7','hdim7','maj7'],
+  'Mixolydian':    ['dom7','min7','hdim7','maj7','min7','min7','maj7'],
+  'Lydian':        ['maj7','dom7','min7','hdim7','maj7','min7','min7'],
+  'Phrygian':      ['min7','maj7','dom7','min7','hdim7','maj7','min7'],
+  'Locrian':       ['hdim7','maj7','min7','min7','maj7','dom7','min7']
+};
+
+var CFUNC = {
+  'Major':         ['Tonic','Supertonic','Mediant','Subdominant','Dominant','Submediant','Leading tone'],
+  'Natural Minor': ['Tonic','Supertonic','Mediant','Subdominant','Subtonic','Submediant','Subtonic VII'],
+  'Harmonic Minor':['Tonic','Supertonic','Mediant+','Subdominant','Dominant','Submediant','Leading tone'],
+  'Melodic Minor': ['Tonic','Supertonic','Mediant+','Subdominant','Dominant','Submediant','Leading tone'],
+  'Dorian':        ['Tonic','Supertonic','Mediant','Subdominant','Dominant','Submediant','Subtonic'],
+  'Mixolydian':    ['Tonic','Supertonic','Mediant','Subdominant','Dominant','Submediant','Subtonic VII'],
+  'Lydian':        ['Tonic','Supertonic','Mediant','Lydian #IV','Dominant','Submediant','Leading tone'],
+  'Phrygian':      ['Tonic','Phrygian bII','Mediant','Subdominant','Subtonic V','Submediant','Subtonic'],
+  'Locrian':       ['Tonic dim','Supertonic','Mediant','Subdominant','Dominant','Submediant','Subtonic']
+};
+
+var FDESC = {
+  'Tonic':         'Home - the most stable chord. Progressions begin and end here.',
+  'Tonic dim':     'Unstable tonic - the diminished i is restless and rarely rests here.',
+  'Supertonic':    'Pre-dominant - naturally leads toward V or IV. In minor often diminished.',
+  'Mediant':       'Bridge between Tonic and Subdominant regions. Used for colour and transition.',
+  'Mediant+':      'Augmented mediant - unique to harmonic and melodic minor. The augmented triad has an exotic tense colour.',
+  'Subdominant':   'Moves away from Tonic. Creates tension that the Dominant then resolves.',
+  'Dominant':      'Strongest pull back to Tonic - especially with a leading tone. The V to i cadence is the cornerstone of tonal harmony.',
+  'Subtonic':      'Relaxed VII - no leading tone so does not push strongly to I. Gives a modal open feeling.',
+  'Subtonic VII':  'Major VII chord a whole step below Tonic. Common in natural minor and Mixolydian.',
+  'Submediant':    'Closely related to Tonic - shares two notes with it. Often the target of a deceptive cadence.',
+  'Leading tone':  'The vii dim chord - its leading tone creates maximum tension resolving to I.',
+  'Lydian #IV':    'The raised IV dim is the hallmark of Lydian - unstable and dreamy pulling toward V.',
+  'Phrygian bII':  'The major bII is the defining sound of Phrygian. Resolves powerfully to i. Iconic in flamenco and metal.',
+  'Subtonic V':    'In Phrygian the V chord is diminished - very unstable. Rarely used as a cadential dominant.'
+};
+
+var IVALS = {
+  'maj':[0,4,7],'min':[0,3,7],'dim':[0,3,6],'aug':[0,4,8],
+  'maj7':[0,4,7,11],'min7':[0,3,7,10],'dom7':[0,4,7,10],
+  'hdim7':[0,3,6,10],'dim7':[0,3,6,9],
+  'mmaj7':[0,3,7,11],'augmaj7':[0,4,8,11],
+  'maj9':[0,4,7,11,14],'min9':[0,3,7,10,14],'dom9':[0,4,7,10,14],'mmaj9':[0,3,7,11,14],
+  'sus2':[0,2,7],'sus4':[0,5,7],
+  'add9':[0,4,7,14],'madd9':[0,3,7,14],
+  'maj6':[0,4,7,9],'min6':[0,3,7,9]
+};
+
+var CLBL = {
+  'maj':'Major','min':'Minor','dim':'Diminished','aug':'Augmented',
+  'maj7':'Major 7th','min7':'Minor 7th','dom7':'Dominant 7th',
+  'hdim7':'Half-dim (o7)','dim7':'Diminished 7th',
+  'mmaj7':'Minor/Maj 7th','augmaj7':'Aug/Maj 7th',
+  'maj9':'Major 9th','min9':'Minor 9th','dom9':'Dominant 9th','mmaj9':'Min/Maj 9th',
+  'sus2':'Sus 2','sus4':'Sus 4',
+  'add9':'Add 9','madd9':'Minor add9',
+  'maj6':'Major 6th','min6':'Minor 6th'
+};
+
+var ESUFFIX = {
+  'maj7':'maj7','min7':'7','dom7':'7','hdim7':'o7','dim7':'o7',
+  'mmaj7':'mM7','augmaj7':'+M7',
+  'maj9':'maj9','min9':'9','dom9':'9','mmaj9':'mM9',
+  'sus2':'sus2','sus4':'sus4','add9':'add9','madd9':'add9',
+  'maj6':'6','min6':'6'
+};
+
+function mkRoman(deg, q) {
+  var R = ['I','II','III','IV','V','VI','VII'];
+  var r = R[deg];
+  var isMin = (q==='min'||q==='min7'||q==='hdim7'||q==='mmaj7');
+  var isDim = (q==='dim'||q==='hdim7'||q==='dim7');
+  var isAug = (q==='aug'||q==='augmaj7');
+  if (isMin||isDim) r = r.toLowerCase();
+  if (isDim) r = r + 'o';
+  if (isAug) r = r + '+';
+  return r;
+}
+
+function getStepRoman(step) {
+  var triQ = TRIAD[selMode][step.degree];
+  var r = mkRoman(step.degree, step.ext || triQ);
+  if (step.ext && ESUFFIX[step.ext]) r = r + ' ' + ESUFFIX[step.ext];
+  return r;
+}
+
+function getChordName(step) {
+  var mode = MODES[selMode];
+  var rootNote = CHR[(selKey + mode.iv[step.degree]) % 12];
+  var q = step.ext || TRIAD[selMode][step.degree];
+  return rootNote + ' ' + (CLBL[q] || q);
+}
+
+function getDiatonic(modeName, degree) {
+  var triQ = TRIAD[modeName][degree];
+  var sevQ = SEVENTH[modeName][degree];
+  var d = [triQ];
+  if (sevQ && sevQ !== triQ) d.push(sevQ);
+  var ninths = {'maj7':'maj9','min7':'min9','dom7':'dom9','mmaj7':'mmaj9'};
+  if (ninths[sevQ]) d.push(ninths[sevQ]);
+  d.push('sus4','sus2');
+  if (triQ==='maj') { d.push('add9'); d.push('maj6'); }
+  if (triQ==='min') { d.push('madd9'); d.push('min6'); }
+  var seen = {}, out = [];
+  for (var i=0;i<d.length;i++) { if(d[i]&&!seen[d[i]]) { seen[d[i]]=1; out.push(d[i]); } }
+  return out;
+}
+
+function getBorrowed(modeName, degree) {
+  var diat = getDiatonic(modeName, degree);
+  var all = ['maj','min','dim','aug','maj7','min7','dom7','hdim7','dim7','mmaj7','augmaj7',
+             'maj9','min9','dom9','sus2','sus4','add9','madd9','maj6','min6'];
+  var dmap = {};
+  for (var i=0;i<diat.length;i++) dmap[diat[i]]=1;
+  return all.filter(function(e){return !dmap[e];});
+}
+
+function isDiatonic(modeName, degree, ext) {
+  var d = getDiatonic(modeName, degree);
+  for (var i=0;i<d.length;i++) if(d[i]===ext) return true;
+  return false;
+}
+
+var selKey=0, selMode='Major', selStep=null;
+var isPlaying=false, stepIdx=-1, playTmr=null;
+var audioCtx=null, waveType='piano', steps=[], dragIdx=null;
+
+function mkStep() {
+  return {id:Date.now()+Math.random(),degree:0,ext:'',isRest:false,octave:4,duration:2,inversion:0};
+}
+var startDegs=[0,3,4,0];
+for (var _i=0;_i<4;_i++){var _s=mkStep();_s.degree=startDegs[_i];steps.push(_s);}
+
+function getACtx() {
+  if (!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  return audioCtx;
+}
+function midiToFreq(m){return 440*Math.pow(2,(m-69)/12);}
+
+function playPianoNote(freq,dur,gain){
+  var c=getACtx(),now=c.currentTime;
+  var master=c.createGain(); master.connect(c.destination);
+  var harms=[1,2,3,4,5,6,7,8];
+  var amps=[1,0.45,0.2,0.1,0.05,0.025,0.012,0.006];
+  for(var i=0;i<harms.length;i++){
+    var o=c.createOscillator(),g=c.createGain();
+    o.type='sine'; o.frequency.value=freq*harms[i];
+    var pk=gain*amps[i];
+    g.gain.setValueAtTime(pk,now);
+    g.gain.exponentialRampToValueAtTime(pk*0.5,now+0.05);
+    g.gain.exponentialRampToValueAtTime(pk*0.18,now+0.3);
+    g.gain.exponentialRampToValueAtTime(0.0001,now+Math.max(dur*0.98,0.5));
+    o.connect(g); g.connect(master);
+    o.start(now); o.stop(now+Math.max(dur,0.5)+0.05);
+  }
+}
+
+function playSingleMidi(midi,dur){
+  if(waveType==='piano'){playPianoNote(midiToFreq(midi),dur,0.22);return;}
+  var c=getACtx(),now=c.currentTime;
+  var o=c.createOscillator(),g=c.createGain();
+  o.type=waveType; o.frequency.value=midiToFreq(midi);
+  g.gain.setValueAtTime(0,now);
+  g.gain.linearRampToValueAtTime(0.18,now+0.015);
+  g.gain.setValueAtTime(0.18,now+dur*0.8);
+  g.gain.exponentialRampToValueAtTime(0.0001,now+dur*0.99);
+  o.connect(g); g.connect(c.destination);
+  o.start(now); o.stop(now+dur+0.05);
+}
+
+function getStepMidi(step){
+  if(step.isRest) return [];
+  var mode=MODES[selMode];
+  var degRoot=(selKey+mode.iv[step.degree])%12;
+  var base=12*step.octave+degRoot;
+  var q=step.ext||TRIAD[selMode][step.degree];
+  var ivs=IVALS[q]||IVALS['maj'];
+  var ns=ivs.map(function(v){return base+v;});
+  var inv=Math.min(step.inversion||0,ns.length-1);
+  for(var i=0;i<inv;i++) ns[i]+=12;
+  ns.sort(function(a,b){return a-b;});
+  return ns;
+}
+
+function playStep(step){
+  if(step.isRest) return;
+  var bpm=parseInt(document.getElementById('bpmSlider').value);
+  var dur=(60/bpm)*step.duration;
+  var notes=getStepMidi(step);
+  var pg=waveType==='piano'?(0.22/Math.sqrt(notes.length)):0;
+  for(var i=0;i<notes.length;i++){
+    if(waveType==='piano') playPianoNote(midiToFreq(notes[i]),dur,pg);
+    else playSingleMidi(notes[i],dur);
+  }
+}
+
+function playKey(midi){getACtx();playSingleMidi(midi,1.2);}
+function noteName(m){return CHR[m%12]+Math.floor(m/12-1);}
+function invLbl(i){return['Root','1st','2nd','3rd','4th'][i]||(i+'th');}
+function stepMs(step){return(60000/parseInt(document.getElementById('bpmSlider').value))*step.duration;}
+
+var WS=[0,2,4,5,7,9,11],BS=[1,3,6,8,10];
+var KW=38,POCT=3,NOCTS=3;
+
+function buildPiano(){
+  var p=document.getElementById('piano');
+  p.innerHTML='';
+  p.style.width=(NOCTS*7*KW)+'px';
+  p.style.height='132px';
+  p.style.position='relative';
+  p.style.display='flex';
+  p.style.flexShrink='0';
+
+  for(var o=0;o<NOCTS;o++){
+    for(var wi=0;wi<WS.length;wi++){
+      var s=WS[wi];
+      var midi=(POCT+o)*12+s;
+      var k=document.createElement('div');
+      k.className='wk'; k.dataset.midi=midi;
+      var lbl=document.createElement('div'); lbl.className='klbl';
+      lbl.innerHTML=CHR[s]+(s===0?'<br>'+(POCT+o):'');
+      k.appendChild(lbl);
+      (function(el,m){
+        el.addEventListener('mousedown',function(e){e.stopPropagation();pressKey(el,m);});
+        el.addEventListener('touchstart',function(e){e.preventDefault();e.stopPropagation();pressKey(el,m);},{passive:false});
+      })(k,midi);
+      p.appendChild(k);
+    }
+  }
+
+  for(var o2=0;o2<NOCTS;o2++){
+    for(var bi=0;bi<BS.length;bi++){
+      var s2=BS[bi];
+      var wb=0;
+      for(var wi2=0;wi2<WS.length;wi2++){if(WS[wi2]<s2)wb++;}
+      wb+=o2*7;
+      var midi2=(POCT+o2)*12+s2;
+      var k2=document.createElement('div');
+      k2.className='bk'; k2.dataset.midi=midi2;
+      k2.style.left=(wb*KW-12)+'px';
+      var lbl2=document.createElement('div'); lbl2.className='klbl'; lbl2.textContent=CHR[s2];
+      k2.appendChild(lbl2);
+      (function(el,m){
+        el.addEventListener('mousedown',function(e){e.stopPropagation();pressKey(el,m);});
+        el.addEventListener('touchstart',function(e){e.preventDefault();e.stopPropagation();pressKey(el,m);},{passive:false});
+      })(k2,midi2);
+      p.appendChild(k2);
+    }
+  }
+}
+
+function pressKey(el,midi){
+  getACtx(); playKey(midi);
+  el.classList.add('pressed');
+  setTimeout(function(){el.classList.remove('pressed');},220);
+}
+
+function litPiano(step,flash){
+  var all=document.querySelectorAll('.wk,.bk');
+  for(var i=0;i<all.length;i++) all[i].classList.remove('lit','root','flash');
+  var pcn=document.getElementById('pcName');
+  var pnl=document.getElementById('pnList');
+  var pil=document.getElementById('pInvLbl');
+  if(!step||step.isRest){pcn.textContent='-';pnl.textContent='';pil.style.display='none';return;}
+  var notes=getStepMidi(step);
+  pcn.textContent=getChordName(step);
+  pnl.textContent=notes.map(noteName).join('  .  ');
+  var inv=step.inversion||0;
+  if(inv>0){pil.textContent=invLbl(inv)+' inversion';pil.style.display='';}
+  else pil.style.display='none';
+  for(var i=0;i<notes.length;i++){
+    var k=document.querySelector('[data-midi="'+notes[i]+'"]');
+    if(!k) continue;
+    k.classList.add(flash?'flash':(i===0?'root':'lit'));
+  }
+  if(flash){
+    setTimeout(function(){
+      var fk=document.querySelectorAll('.flash');
+      for(var i=0;i<fk.length;i++) fk[i].classList.remove('flash');
+      if(selStep&&!isPlaying) litPiano(selStep,false);
+    },300);
+  }
+  if(notes.length){
+    var minM=Math.min.apply(null,notes);
+    var oct=Math.floor(minM/12)-POCT;
+    document.querySelector('.pianowrap').scrollLeft=Math.max(0,oct*7*KW-20);
+  }
+}
+
+function renderKeys(){
+  var g=document.getElementById('keyGrid'); g.innerHTML='';
+  for(var i=0;i<DKEYS.length;i++){
+    var b=document.createElement('button');
+    b.className='kbtn'+(i===selKey?' on':'');
+    b.textContent=DKEYS[i];
+    (function(idx){b.onclick=function(){selKey=idx;renderAll();};})(i);
+    g.appendChild(b);
+  }
+  document.getElementById('skey').textContent=DKEYS[selKey];
+}
+
+function renderModes(){
+  var g=document.getElementById('modeGrid'); g.innerHTML='';
+  for(var i=0;i<MNAMES.length;i++){
+    var m=MNAMES[i];
+    var b=document.createElement('button');
+    b.className='mbtn'+(m===selMode?' on':'');
+    b.textContent=m;
+    (function(mn){b.onclick=function(){selMode=mn;renderAll();};})(m);
+    g.appendChild(b);
+  }
+  document.getElementById('smode').textContent=selMode;
+  var mode=MODES[selMode];
+  var scaleNotes=mode.iv.map(function(iv){return CHR[(selKey+iv)%12];}).join('  ');
+  var chordRow=TRIAD[selMode].map(function(q,i){return mkRoman(i,q);}).join(' . ');
+  var mi=document.getElementById('modeInfo');
+  mi.innerHTML='<b>'+selMode+'</b> - '+mode.ch+'<br>'
+    +'<span style="font-size:0.7rem;">'+mode.desc+'</span><br>'
+    +'<div class="mnotes">Notes in '+DKEYS[selKey]+': '+scaleNotes+'</div>'
+    +'<div class="mnotes">Chords: '+chordRow+'</div>';
+}
+
+function renderSeq(){
+  var track=document.getElementById('seqTrack'); track.innerHTML='';
+  for(var idx=0;idx<steps.length;idx++){
+    (function(step,idx){
+      var el=document.createElement('div');
+      var cls='step';
+      if(step===selStep) cls+=' sel';
+      if(idx===stepIdx) cls+=' playing';
+      if(step.isRest) cls+=' rest';
+      el.className=cls; el.draggable=true; el.dataset.idx=idx;
+      var num=document.createElement('div'); num.className='snum'; num.textContent='STEP '+(idx+1);
+      var rv=document.createElement('div'); rv.className='sroman';
+      rv.textContent=step.isRest?'-':getStepRoman(step);
+      var nv=document.createElement('div'); nv.className='sname';
+      nv.textContent=step.isRest?'rest':getChordName(step);
+      var fn=document.createElement('div'); fn.className='sfn';
+      fn.textContent=step.isRest?'':CFUNC[selMode][step.degree];
+      el.appendChild(num); el.appendChild(rv); el.appendChild(nv); el.appendChild(fn);
+      if(step.ext&&!step.isRest){
+        var badge=document.createElement('div');
+        var diat=isDiatonic(selMode,step.degree,step.ext);
+        badge.className='sbadge '+(diat?'d':'b');
+        badge.textContent=(diat?'':'! ')+(CLBL[step.ext]||step.ext);
+        el.appendChild(badge);
+      }
+      if((step.inversion||0)>0&&!step.isRest){
+        var inv=document.createElement('div'); inv.className='sinv';
+        inv.textContent=invLbl(step.inversion)+' inv';
+        el.appendChild(inv);
+      }
+      var dots=document.createElement('div'); dots.className='sdots';
+      for(var d=0;d<step.duration;d++){var dot=document.createElement('div');dot.className='sdot2';dots.appendChild(dot);}
+      el.appendChild(dots);
+      var del=document.createElement('button'); del.className='delbtn'; del.textContent='x';
+      del.onclick=(function(s,i){return function(e){e.stopPropagation();if(s===selStep)selStep=null;steps.splice(i,1);renderAll();};})(step,idx);
+      el.appendChild(del);
+      el.onclick=function(){selStep=step;renderAll();playStep(step);litPiano(step,false);};
+      el.addEventListener('dragstart',function(e){dragIdx=idx;setTimeout(function(){el.classList.add('dragging');},0);e.dataTransfer.effectAllowed='move';});
+      el.addEventListener('dragend',function(){el.classList.remove('dragging');document.querySelectorAll('.step').forEach(function(s){s.classList.remove('dl','dr');});});
+      el.addEventListener('dragover',function(e){e.preventDefault();document.querySelectorAll('.step').forEach(function(s){s.classList.remove('dl','dr');});var rect=el.getBoundingClientRect();el.classList.add(e.clientX<rect.left+rect.width/2?'dl':'dr');});
+      el.addEventListener('dragleave',function(){el.classList.remove('dl','dr');});
+      el.addEventListener('drop',function(e){e.preventDefault();el.classList.remove('dl','dr');if(dragIdx===null||dragIdx===idx)return;var rect=el.getBoundingClientRect();var ins=e.clientX<rect.left+rect.width/2;var moved=steps.splice(dragIdx,1)[0];var ti=parseInt(el.dataset.idx);if(dragIdx<ti)ti--;steps.splice(ins?ti:ti+1,0,moved);dragIdx=null;renderAll();});
+      track.appendChild(el);
+    })(steps[idx],idx);
+  }
+  var ph=document.createElement('div'); ph.className='addph'; ph.textContent='+';
+  ph.onclick=addStep; track.appendChild(ph);
+  var pb=document.getElementById('posBar'); pb.innerHTML='';
+  for(var i=0;i<steps.length;i++){var d=document.createElement('li');d.className='pdot'+(i===stepIdx?' cur':i<stepIdx?' vis':'');pb.appendChild(d);}
+}
+
+function renderEditor(){
+  var si=document.getElementById('stepInd');
+  var tn=document.getElementById('thNote');
+  var bw=document.getElementById('bwWarn');
+  if(!selStep){si.textContent='Select a step';tn.style.display='none';return;}
+  si.textContent='Step '+(steps.indexOf(selStep)+1);
+  if(!selStep.isRest){
+    var fn=CFUNC[selMode][selStep.degree];
+    var fdesc=FDESC[fn]||'';
+    var triQ=TRIAD[selMode][selStep.degree];
+    var sevQ=SEVENTH[selMode][selStep.degree];
+    tn.style.display='block';
+    tn.innerHTML='<span class="fnlbl">'+fn+'</span> - '+fdesc+'<br>'
+      +'<span style="font-size:0.65rem;color:#7a6248;">Diatonic triad: <b style="color:#c8a97a;">'+(CLBL[triQ]||triQ)+'</b>  .  Diatonic 7th: <b style="color:#c8a97a;">'+(CLBL[sevQ]||sevQ)+'</b></span>';
+  } else {tn.style.display='none';}
+
+  var dg=document.getElementById('degGrid'); dg.innerHTML='';
+  var mode=MODES[selMode];
+  for(var i=0;i<7;i++){
+    (function(deg){
+      var triQ=TRIAD[selMode][deg];
+      var b=document.createElement('button');
+      b.className='degbtn'+(deg===selStep.degree&&!selStep.isRest?' on':'');
+      var rv=document.createElement('div'); rv.textContent=mkRoman(deg,triQ);
+      var nt=document.createElement('div'); nt.className='degnote';
+      nt.textContent=CHR[(selKey+mode.iv[deg])%12];
+      b.appendChild(rv); b.appendChild(nt);
+      b.onclick=function(){selStep.degree=deg;selStep.isRest=false;selStep.ext='';selStep.inversion=0;document.getElementById('restCb').checked=false;renderAll();playStep(selStep);litPiano(selStep,false);};
+      dg.appendChild(b);
+    })(i);
+  }
+
+  document.getElementById('restCb').checked=selStep.isRest;
+  document.getElementById('octVal').textContent=selStep.octave;
+
+  var diat=getDiatonic(selMode,selStep.degree);
+  var borr=getBorrowed(selMode,selStep.degree);
+  var curExt=selStep.ext||TRIAD[selMode][selStep.degree];
+  var ed=document.getElementById('extDiat'); ed.innerHTML='';
+  for(var i=0;i<diat.length;i++){
+    (function(e){
+      var b=document.createElement('button');
+      b.className='extbtn dt'+(curExt===e?' on':'');
+      b.textContent=CLBL[e]||e;
+      b.title='Diatonic - fits naturally in '+selMode;
+      b.onclick=function(){selStep.ext=(e===TRIAD[selMode][selStep.degree])?'':e;renderAll();playStep(selStep);litPiano(selStep,false);};
+      ed.appendChild(b);
+    })(diat[i]);
+  }
+  var eb=document.getElementById('extBorr'); eb.innerHTML='';
+  for(var i=0;i<borr.length;i++){
+    (function(e){
+      var b=document.createElement('button');
+      b.className='extbtn bw'+(selStep.ext===e?' on':'');
+      b.textContent=CLBL[e]||e;
+      b.title='Non-diatonic - alters a scale note';
+      b.onclick=function(){selStep.ext=e;renderAll();playStep(selStep);litPiano(selStep,false);};
+      eb.appendChild(b);
+    })(borr[i]);
+  }
+
+  var isBorr=selStep.ext&&!isDiatonic(selMode,selStep.degree,selStep.ext);
+  bw.className='bwwarn'+(isBorr?' show':'');
+  if(isBorr) bw.textContent='! '+(CLBL[selStep.ext]||selStep.ext)+' is not diatonic to '+selMode+'. It borrows from another mode. Can be used intentionally for colour.';
+
+  var ir=document.getElementById('invRow'); ir.innerHTML='';
+  var q=selStep.ext||TRIAD[selMode][selStep.degree];
+  var ivs2=IVALS[q]||[0,4,7];
+  for(var i=0;i<=ivs2.length-1;i++){
+    (function(n){
+      var b=document.createElement('button');
+      b.className='invbtn'+((selStep.inversion||0)===n?' on':'');
+      b.textContent=invLbl(n);
+      b.onclick=function(){selStep.inversion=n;renderAll();playStep(selStep);litPiano(selStep,false);};
+      ir.appendChild(b);
+    })(i);
+  }
+
+  var dbs=document.querySelectorAll('.durbtn');
+  for(var i=0;i<dbs.length;i++) dbs[i].className='durbtn'+(parseInt(dbs[i].dataset.d)===selStep.duration?' on':'');
+  litPiano(selStep,false);
+}
+
+function renderAll(){renderKeys();renderModes();renderSeq();renderEditor();}
+
+function addStep(){var s=mkStep();steps.push(s);selStep=s;renderAll();}
+document.getElementById('addStepBtn').onclick=addStep;
+document.getElementById('restCb').onchange=function(){if(!selStep)return;selStep.isRest=this.checked;renderAll();};
+document.getElementById('octDn').onclick=function(){if(!selStep||selStep.octave<=2)return;selStep.octave--;renderAll();litPiano(selStep,false);};
+document.getElementById('octUp').onclick=function(){if(!selStep||selStep.octave>=7)return;selStep.octave++;renderAll();litPiano(selStep,false);};
+var durBtns=document.querySelectorAll('.durbtn');
+for(var _di=0;_di<durBtns.length;_di++){(function(b){b.onclick=function(){if(!selStep)return;selStep.duration=parseInt(b.dataset.d);renderAll();};})(durBtns[_di]);}
+var wBtns=document.querySelectorAll('.wbtn');
+for(var _wi=0;_wi<wBtns.length;_wi++){(function(b){b.onclick=function(){waveType=b.dataset.w;for(var j=0;j<wBtns.length;j++)wBtns[j].className='wbtn';b.className='wbtn on';};})(wBtns[_wi]);}
+document.getElementById('bpmSlider').oninput=function(){document.getElementById('bpmVal').textContent=this.value;};
+
+function startPlay(){
+  if(!steps.length)return;
+  getACtx();isPlaying=true;
+  document.getElementById('playBtn').className='pbtn on';
+  document.getElementById('playBtn').innerHTML='&#9646;&#9646; PAUSE';
+  document.getElementById('sdot').className='sdot on';
+  document.getElementById('stxt').textContent='PLAYING';
+  if(stepIdx<0)stepIdx=0;
+  tick();
+}
+function tick(){
+  if(!isPlaying||!steps.length)return;
+  var step=steps[stepIdx];
+  playStep(step); litPiano(step,true);
+  document.getElementById('sstep').textContent=(stepIdx+1)+'/'+steps.length;
+  document.getElementById('schord').textContent=step.isRest?'-':getChordName(step);
+  renderSeq();
+  playTmr=setTimeout(function(){stepIdx=(stepIdx+1)%steps.length;tick();},stepMs(step));
+}
+function pausePlay(){
+  isPlaying=false;clearTimeout(playTmr);
+  document.getElementById('playBtn').className='pbtn';
+  document.getElementById('playBtn').innerHTML='&#9654; PLAY';
+  document.getElementById('sdot').className='sdot';
+  document.getElementById('stxt').textContent='PAUSED';
+}
+function stopPlay(){
+  isPlaying=false;clearTimeout(playTmr);stepIdx=-1;
+  document.getElementById('playBtn').className='pbtn';
+  document.getElementById('playBtn').innerHTML='&#9654; PLAY';
+  document.getElementById('sdot').className='sdot';
+  document.getElementById('stxt').textContent='STOPPED';
+  document.getElementById('sstep').textContent='-';
+  document.getElementById('schord').textContent='-';
+  renderSeq();
+  if(selStep)litPiano(selStep,false);else litPiano(null,false);
+}
+document.getElementById('playBtn').onclick=function(){if(isPlaying)pausePlay();else startPlay();};
+document.getElementById('stopBtn').onclick=stopPlay;
+
+buildPiano();
+selStep=steps[0];
+renderAll();
+</script>
+</body>
+</html>
