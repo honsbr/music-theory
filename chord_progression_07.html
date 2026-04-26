@@ -172,7 +172,7 @@
 .degree-btn .deg-note{font-size:0.5rem;color:var(–text3);font-family:var(–font-sans);}
 .degree-btn.active .deg-note{color:rgba(26,14,6,0.6);}
 
-/* Extension buttons — split diatonic / borrowed */
+/* Extension buttons  -  split diatonic / borrowed */
 .ext-section-label{font-family:var(–font-mono);font-size:0.55rem;letter-spacing:0.08em;text-transform:uppercase;color:var(–text3);margin:0.6rem 0 0.35rem;}
 .ext-grid{display:flex;flex-wrap:wrap;gap:4px;}
 .ext-btn{font-family:var(–font-mono);font-size:0.58rem;padding:4px 7px;border-radius:var(–radius);cursor:pointer;transition:all 0.12s;}
@@ -217,8 +217,8 @@
   <div class="status-item"><div class="status-dot" id="statusDot"></div><span class="status-text" id="statusText">STOPPED</span></div>
   <div class="status-item"><span class="status-text">KEY</span><span class="status-val" id="statusKey">C</span></div>
   <div class="status-item"><span class="status-text">MODE</span><span class="status-val" id="statusMode">Major</span></div>
-  <div class="status-item"><span class="status-text">STEP</span><span class="status-val" id="statusStep">—</span></div>
-  <div class="status-item"><span class="status-text">CHORD</span><span class="status-val" id="statusChord">—</span></div>
+  <div class="status-item"><span class="status-text">STEP</span><span class="status-val" id="statusStep"> - </span></div>
+  <div class="status-item"><span class="status-text">CHORD</span><span class="status-val" id="statusChord"> - </span></div>
   <div class="status-item" style="margin-left:auto;">
     <span class="status-text">SOUND</span>
     <div class="wave-row">
@@ -259,7 +259,7 @@
 
 <div class="seq-section">
   <div class="seq-header">
-    <div class="label">Sequence — drag to reorder</div>
+    <div class="label">Sequence  -  drag to reorder</div>
     <button class="seq-add-btn" id="addStepBtn">+ ADD STEP</button>
   </div>
   <ul class="pos-bar" id="posDots"></ul>
@@ -270,7 +270,7 @@
   <div class="piano-header">
     <div class="label" style="margin:0;color:var(--text2);">Keyboard</div>
     <div class="piano-info">
-      <span class="piano-chord-name" id="pianoChordName">—</span>
+      <span class="piano-chord-name" id="pianoChordName"> - </span>
       <span class="piano-notes-list" id="pianoNotesList"></span>
       <span class="piano-inv-label" id="pianoInvLabel" style="display:none;"></span>
     </div>
@@ -295,7 +295,7 @@
       </div>
       <div class="octave-ctrl">
         <span class="label">OCTAVE</span>
-        <button class="oct-btn" id="octDown">−</button>
+        <button class="oct-btn" id="octDown">-</button>
         <span class="oct-val" id="octVal">4</span>
         <button class="oct-btn" id="octUp">+</button>
       </div>
@@ -326,37 +326,37 @@
 
 </div>
 <script>
-// ── Music Theory Data ─────────────────────────────────────
+// -- Music Theory Data -------------------------------------
 
 const CHROMATIC = [‘C’,‘C#’,‘D’,‘D#’,‘E’,‘F’,‘F#’,‘G’,‘G#’,‘A’,‘A#’,‘B’];
 const DISPLAY_KEYS = [‘C’,‘C#’,‘D’,‘Eb’,‘E’,‘F’,‘F#’,‘G’,‘Ab’,‘A’,‘Bb’,‘B’];
 
-// ── Mode definitions ───────────────────────────────────────
+// – Mode definitions —————————————
 // Semitone intervals from root for each of 7 scale degrees.
 // Harmonic minor raises the 7th (+1 semitone vs natural minor).
 // Melodic minor raises both 6th and 7th (ascending form, used in jazz/classical).
 const MODES = {
 ‘Major’:          { intervals:[0,2,4,5,7,9,11],  desc:‘The foundation of Western harmony. All chords are built from the same 7-note scale. Bright, resolved, stable.’, character:‘Bright & stable’, family:‘major’ },
 ‘Natural Minor’:  { intervals:[0,2,3,5,7,8,10],  desc:‘The most common minor scale. The V chord is minor (v), giving a softer, less resolved dominant. Melancholic and dark.’, character:‘Dark & melancholic’, family:‘minor’ },
-‘Harmonic Minor’: { intervals:[0,2,3,5,7,8,11],  desc:‘Natural minor with a raised 7th (♯7). This creates a major V chord with a leading tone — the strongest possible resolution to i. Essential for tonal minor writing. The ♯7 also creates an augmented 2nd between ♭6 and ♯7, giving it an exotic, Middle-Eastern flavour.’, character:‘Minor + raised ♯7 → major V’, family:‘minor’ },
-‘Melodic Minor’:  { intervals:[0,2,3,5,7,9,11],  desc:‘Natural minor with raised 6th AND 7th (ascending form). Eliminates the awkward augmented 2nd of harmonic minor. Gives a major V and a minor iv. The characteristic jazz minor scale — used over min/maj7 chords and in jazz improvisation.’, character:‘Minor + raised ♯6 ♯7’, family:‘minor’ },
-‘Dorian’:         { intervals:[0,2,3,5,7,9,10],  desc:‘Minor with a raised 6th (♮6). The characteristic IV chord is major, not minor. Brighter than natural minor. Very common in jazz, funk, Celtic, and rock (e.g. Doria, So What by Miles Davis).’, character:‘Minor + raised ♮6’, family:‘minor’ },
-‘Mixolydian’:     { intervals:[0,2,4,5,7,9,10],  desc:‘Major with a flattened 7th (♭7). The I chord is dominant in feel. The VII chord is major. Extremely common in blues, rock, and folk. The scale of “Mixolydian blues”.’, character:‘Major + flat ♭7’, family:‘major’ },
-‘Lydian’:         { intervals:[0,2,4,6,7,9,11],  desc:‘Major with a raised 4th (♯4). The characteristic ♯IV chord is diminished. Dreamy, floating, ethereal — used extensively in film music (John Williams). The tritone above the tonic gives it lift.’, character:‘Major + raised ♯4’, family:‘major’ },
-‘Phrygian’:       { intervals:[0,1,3,5,7,8,10],  desc:‘Minor with a flattened 2nd (♭2). The characteristic ♭II chord is major — the “Phrygian dominant”. Very dark, Spanish/flamenco flavour. The ♭II→i cadence is iconic in flamenco and metal.’, character:‘Minor + flat ♭2’, family:‘minor’ },
-‘Locrian’:        { intervals:[0,1,3,5,6,8,10],  desc:‘Diminished tonic. The I chord is diminished, making it extremely unstable as a key centre. Rarely used as a tonic but important as the 7th mode of major. Appears over the vii° chord in jazz.’, character:‘Diminished tonic’, family:‘minor’ },
+‘Harmonic Minor’: { intervals:[0,2,3,5,7,8,11],  desc:‘Natural minor with a raised 7th (\u266F7). This creates a major V chord with a leading tone  -  the strongest possible resolution to i. Essential for tonal minor writing. The \u266F7 also creates an augmented 2nd between \u266D6 and \u266F7, giving it an exotic, Middle-Eastern flavour.’, character:‘Minor + raised \u266F7 \u2192 major V’, family:‘minor’ },
+‘Melodic Minor’:  { intervals:[0,2,3,5,7,9,11],  desc:‘Natural minor with raised 6th AND 7th (ascending form). Eliminates the awkward augmented 2nd of harmonic minor. Gives a major V and a minor iv. The characteristic jazz minor scale  -  used over min/maj7 chords and in jazz improvisation.’, character:‘Minor + raised \u266F6 \u266F7’, family:‘minor’ },
+‘Dorian’:         { intervals:[0,2,3,5,7,9,10],  desc:‘Minor with a raised 6th (\u266E6). The characteristic IV chord is major, not minor. Brighter than natural minor. Very common in jazz, funk, Celtic, and rock (e.g. Doria, So What by Miles Davis).’, character:‘Minor + raised \u266E6’, family:‘minor’ },
+‘Mixolydian’:     { intervals:[0,2,4,5,7,9,10],  desc:‘Major with a flattened 7th (\u266D7). The I chord is dominant in feel. The VII chord is major. Extremely common in blues, rock, and folk. The scale of “Mixolydian blues”.’, character:‘Major + flat \u266D7’, family:‘major’ },
+‘Lydian’:         { intervals:[0,2,4,6,7,9,11],  desc:‘Major with a raised 4th (\u266F4). The characteristic \u266FIV chord is diminished. Dreamy, floating, ethereal  -  used extensively in film music (John Williams). The tritone above the tonic gives it lift.’, character:‘Major + raised \u266F4’, family:‘major’ },
+‘Phrygian’:       { intervals:[0,1,3,5,7,8,10],  desc:‘Minor with a flattened 2nd (\u266D2). The characteristic \u266DII chord is major  -  the “Phrygian dominant”. Very dark, Spanish/flamenco flavour. The \u266DII\u2192i cadence is iconic in flamenco and metal.’, character:‘Minor + flat \u266D2’, family:‘minor’ },
+‘Locrian’:        { intervals:[0,1,3,5,6,8,10],  desc:‘Diminished tonic. The I chord is diminished, making it extremely unstable as a key centre. Rarely used as a tonic but important as the 7th mode of major. Appears over the vii\u00B0 chord in jazz.’, character:‘Diminished tonic’, family:‘minor’ },
 };
 
 const MODE_NAMES = Object.keys(MODES);
 
-// ── Diatonic triad qualities per degree, per mode ─────────
+// – Diatonic triad qualities per degree, per mode ———
 // These are the ONLY correct triad qualities for each scale degree.
 // Any other quality is non-diatonic (borrowed/chromatic).
 const MODE_TRIAD_QUALITY = {
 //                     I      II     III    IV     V      VI     VII
 ‘Major’:          [‘maj’, ‘min’, ‘min’, ‘maj’, ‘maj’, ‘min’, ‘dim’],
 ‘Natural Minor’:  [‘min’, ‘dim’, ‘maj’, ‘min’, ‘min’, ‘maj’, ‘maj’],
-‘Harmonic Minor’: [‘min’, ‘dim’, ‘aug’, ‘min’, ‘maj’, ‘maj’, ‘dim’], // V is MAJOR — the whole point
+‘Harmonic Minor’: [‘min’, ‘dim’, ‘aug’, ‘min’, ‘maj’, ‘maj’, ‘dim’], // V is MAJOR  -  the whole point
 ‘Melodic Minor’:  [‘min’, ‘min’, ‘aug’, ‘maj’, ‘maj’, ‘dim’, ‘dim’], // V major, IV major
 ‘Dorian’:         [‘min’, ‘min’, ‘maj’, ‘maj’, ‘min’, ‘dim’, ‘maj’],
 ‘Mixolydian’:     [‘maj’, ‘min’, ‘dim’, ‘maj’, ‘min’, ‘min’, ‘maj’],
@@ -365,13 +365,13 @@ const MODE_TRIAD_QUALITY = {
 ‘Locrian’:        [‘dim’, ‘maj’, ‘min’, ‘min’, ‘maj’, ‘maj’, ‘min’],
 };
 
-// ── Diatonic 7th chord qualities per degree, per mode ─────
+// – Diatonic 7th chord qualities per degree, per mode —–
 // The natural 7th extension for each degree without leaving the scale.
 const MODE_7TH_QUALITY = {
 //                     I        II       III      IV       V        VI       VII
 ‘Major’:          [‘maj7’,  ‘min7’,  ‘min7’,  ‘maj7’,  ‘7’,     ‘min7’,  ‘min7b5’],
 ‘Natural Minor’:  [‘min7’,  ‘min7b5’,‘maj7’,  ‘min7’,  ‘min7’,  ‘maj7’,  ‘7’     ],
-‘Harmonic Minor’: [‘minmaj7’,‘min7b5’,‘augmaj7’,‘min7’, ‘7’,     ‘maj7’,  ‘dim7’  ], // V7 is dominant — key feature
+‘Harmonic Minor’: [‘minmaj7’,‘min7b5’,‘augmaj7’,‘min7’, ‘7’,     ‘maj7’,  ‘dim7’  ], // V7 is dominant  -  key feature
 ‘Melodic Minor’:  [‘minmaj7’,‘min7’, ‘augmaj7’,‘7’,    ‘7’,     ‘min7b5’,‘min7b5’],
 ‘Dorian’:         [‘min7’,  ‘min7’,  ‘maj7’,  ‘7’,     ‘min7’,  ‘min7b5’,‘maj7’  ],
 ‘Mixolydian’:     [‘7’,     ‘min7’,  ‘min7b5’,‘maj7’,  ‘min7’,  ‘min7’,  ‘maj7’  ],
@@ -380,18 +380,18 @@ const MODE_7TH_QUALITY = {
 ‘Locrian’:        [‘min7b5’,‘maj7’,  ‘min7’,  ‘min7’,  ‘maj7’,  ‘7’,     ‘min7’  ],
 };
 
-// ── Roman numeral display ─────────────────────────────────
+// – Roman numeral display ———————————
 // Uppercase = major/augmented, lowercase = minor/diminished
 function buildRoman(degree, quality) {
 const UPPER = [‘I’,‘II’,‘III’,‘IV’,‘V’,‘VI’,‘VII’];
 let r = UPPER[degree];
 if ([‘min’,‘min7’,‘min7b5’,‘minmaj7’].includes(quality)) r = r.toLowerCase();
-if ([‘dim’,‘min7b5’,‘dim7’].includes(quality)) r = r.toLowerCase() + ‘°’;
+if ([‘dim’,‘min7b5’,‘dim7’].includes(quality)) r = r.toLowerCase() + ‘\u00b0’;
 if ([‘aug’,‘augmaj7’].includes(quality)) r = r + ‘+’;
 return r;
 }
 
-// ── Harmonic function labels per degree, per mode ─────────
+// – Harmonic function labels per degree, per mode ———
 const CHORD_FUNCTIONS = {
 ‘Major’:          [‘Tonic’,     ‘Supertonic’, ‘Mediant’,    ‘Subdominant’,‘Dominant’,   ‘Submediant’, ‘Leading tone’],
 ‘Natural Minor’:  [‘Tonic’,     ‘Supertonic’, ‘Mediant’,    ‘Subdominant’,‘Subtonic’,   ‘Submediant’, ‘Subtonic VII’],
@@ -399,30 +399,30 @@ const CHORD_FUNCTIONS = {
 ‘Melodic Minor’:  [‘Tonic’,     ‘Supertonic’, ‘Mediant+’,   ‘Subdominant’,‘Dominant’,   ‘Submediant’, ‘Leading tone’],
 ‘Dorian’:         [‘Tonic’,     ‘Supertonic’, ‘Mediant’,    ‘Subdominant’,‘Dominant’,   ‘Submediant’, ‘Subtonic’],
 ‘Mixolydian’:     [‘Tonic’,     ‘Supertonic’, ‘Mediant’,    ‘Subdominant’,‘Dominant’,   ‘Submediant’, ‘Subtonic VII’],
-‘Lydian’:         [‘Tonic’,     ‘Supertonic’, ‘Mediant’,    ‘Lydian ♯IV’, ‘Dominant’,   ‘Submediant’, ‘Leading tone’],
-‘Phrygian’:       [‘Tonic’,     ‘Phrygian ♭II’,‘Mediant’,   ‘Subdominant’,‘Subtonic V’, ‘Submediant’, ‘Subtonic’],
-‘Locrian’:        [‘Tonic°’,    ‘Supertonic’, ‘Mediant’,    ‘Subdominant’,‘Dominant’,   ‘Submediant’, ‘Subtonic’],
+‘Lydian’:         [‘Tonic’,     ‘Supertonic’, ‘Mediant’,    ‘Lydian #IV’, ‘Dominant’,   ‘Submediant’, ‘Leading tone’],
+‘Phrygian’:       [‘Tonic’,     ‘Phrygian bII’,‘Mediant’,   ‘Subdominant’,‘Subtonic V’, ‘Submediant’, ‘Subtonic’],
+‘Locrian’:        [‘Tonicdim’,    ‘Supertonic’, ‘Mediant’,    ‘Subdominant’,‘Dominant’,   ‘Submediant’, ‘Subtonic’],
 };
 
-// ── Extended explanations per function ────────────────────
+// – Extended explanations per function ––––––––––
 const FUNCTION_NOTES = {
-‘Tonic’:          ‘Home — the most stable chord. Progressions tend to begin and end here.’,
-‘Tonic°’:         ‘Unstable tonic — the diminished i° is restless and rarely stays long.’,
-‘Supertonic’:     ‘Pre-dominant — naturally leads toward V or IV. In minor, often diminished (ii°).’,
+‘Tonic’:          ‘Home  -  the most stable chord. Progressions tend to begin and end here.’,
+‘Tonicdim’:         ‘Unstable tonic  -  the diminished i\u00B0 is restless and rarely stays long.’,
+‘Supertonic’:     ‘Pre-dominant  -  naturally leads toward V or IV. In minor, often diminished (ii\u00B0).’,
 ‘Mediant’:        ‘Bridge between Tonic and Subdominant regions. Often used for colour and transition.’,
-‘Mediant+’:       ‘Augmented mediant — unique to harmonic/melodic minor. The augmented triad (III+) has a distinctly exotic, tense colour. Rarely used as a resting point.’,
+‘Mediant+’:       ‘Augmented mediant  -  unique to harmonic/melodic minor. The augmented triad (III+) has a distinctly exotic, tense colour. Rarely used as a resting point.’,
 ‘Subdominant’:    ‘Moves away from Tonic. Creates the tension that the Dominant then resolves.’,
-‘Dominant’:       ‘Strongest pull back to Tonic — especially with a leading tone (♯7). The V→i cadence is the cornerstone of tonal harmony.’,
-‘Subtonic’:       ‘A relaxed VII — no leading tone, so it doesn't push strongly toward I. Gives a modal, open feeling (common in rock and folk).’,
-‘Subtonic VII’:   ‘Major VII chord a whole step below Tonic. Common in natural minor and Mixolydian. Less forceful than a leading-tone vii°.’,
-‘Submediant’:     ‘Closely related to Tonic — shares two notes with it. Very stable; often used as a deceptive cadence target (V→VI instead of V→I).’,
-‘Leading tone’:   ‘The vii° chord — its diminished quality and leading tone create maximum tension that resolves to I.’,
-‘Lydian ♯IV’:     ‘The raised IV° is the hallmark of Lydian — unstable, dreamy, pulling toward V.’,
-‘Phrygian ♭II’:   ‘The major ♭II (Neapolitan-like) is the defining sound of Phrygian. Resolves powerfully to i. Iconic in flamenco and metal.’,
-‘Subtonic V’:     ‘In Phrygian, the V chord is diminished — very unstable. Rarely used as a cadential dominant.’,
+‘Dominant’:       ‘Strongest pull back to Tonic  -  especially with a leading tone (\u266F7). The V\u2192i cadence is the cornerstone of tonal harmony.’,
+‘Subtonic’:       ‘A relaxed VII  -  no leading tone, so it doesn't push strongly toward I. Gives a modal, open feeling (common in rock and folk).’,
+‘Subtonic VII’:   ‘Major VII chord a whole step below Tonic. Common in natural minor and Mixolydian. Less forceful than a leading-tone vii\u00B0.’,
+‘Submediant’:     ‘Closely related to Tonic  -  shares two notes with it. Very stable; often used as a deceptive cadence target (V\u2192VI instead of V\u2192I).’,
+‘Leading tone’:   ‘The vii\u00B0 chord  -  its diminished quality and leading tone create maximum tension that resolves to I.’,
+‘Lydian #IV’:     ‘The raised IV\u00B0 is the hallmark of Lydian  -  unstable, dreamy, pulling toward V.’,
+‘Phrygian bII’:   ‘The major \u266DII (Neapolitan-like) is the defining sound of Phrygian. Resolves powerfully to i. Iconic in flamenco and metal.’,
+‘Subtonic V’:     ‘In Phrygian, the V chord is diminished  -  very unstable. Rarely used as a cadential dominant.’,
 };
 
-// ── Chord interval sets ───────────────────────────────────
+// – Chord interval sets ———————————–
 const CHORD_INTERVALS = {
 // Triads
 ‘maj’:     [0,4,7],
@@ -433,10 +433,10 @@ const CHORD_INTERVALS = {
 ‘maj7’:    [0,4,7,11],
 ‘min7’:    [0,3,7,10],
 ‘7’:       [0,4,7,10],       // dominant 7th
-‘min7b5’:  [0,3,6,10],       // half-diminished ø7
+‘min7b5’:  [0,3,6,10],       // half-diminished o7
 ‘dim7’:    [0,3,6,9],        // fully diminished 7th
-‘minmaj7’: [0,3,7,11],       // minor with major 7th — tonic of harmonic/melodic minor
-‘augmaj7’: [0,4,8,11],       // augmented with major 7th — III of harmonic/melodic minor
+‘minmaj7’: [0,3,7,11],       // minor with major 7th  -  tonic of harmonic/melodic minor
+‘augmaj7’: [0,4,8,11],       // augmented with major 7th  -  III of harmonic/melodic minor
 // 9ths
 ‘maj9’:    [0,4,7,11,14],
 ‘min9’:    [0,3,7,10,14],
@@ -457,7 +457,7 @@ const CHORD_INTERVALS = {
 const CHORD_LABELS = {
 ‘maj’:‘Major’, ‘min’:‘Minor’, ‘dim’:‘Diminished’, ‘aug’:‘Augmented’,
 ‘maj7’:‘Major 7th’, ‘min7’:‘Minor 7th’, ‘7’:‘Dominant 7th’,
-‘min7b5’:‘Half-dim (ø7)’, ‘dim7’:‘Diminished 7th’,
+‘min7b5’:‘Half-dim (o7)’, ‘dim7’:‘Diminished 7th’,
 ‘minmaj7’:‘Minor/Maj 7th’, ‘augmaj7’:‘Aug/Maj 7th’,
 ‘maj9’:‘Major 9th’, ‘min9’:‘Minor 9th’, ‘9’:‘Dominant 9th’, ‘minmaj9’:‘Min/Maj 9th’,
 ‘sus2’:‘Sus 2’, ‘sus4’:‘Sus 4’,
@@ -465,7 +465,7 @@ const CHORD_LABELS = {
 ‘6’:‘Major 6th’, ‘min6’:‘Minor 6th’,
 };
 
-// ── Extension logic ───────────────────────────────────────
+// – Extension logic —————————————
 // Returns which extensions are fully diatonic (use only scale tones) for a given
 // mode and degree. The triad and 7th are always diatonic; 9ths extend from there.
 function getDiatonicExtensions(modeName, degree) {
@@ -505,9 +505,9 @@ function romanWithExt(degree, baseQuality, ext) {
 const effectiveQuality = ext || baseQuality;
 let r = buildRoman(degree, effectiveQuality);
 const suffixes = {
-‘maj7’:‘Δ7’, ‘min7’:‘7’, ‘7’:‘7’, ‘min7b5’:‘ø7’, ‘dim7’:‘°7’,
-‘minmaj7’:‘mΔ7’, ‘augmaj7’:’+Δ7’,
-‘maj9’:‘Δ9’, ‘min9’:‘9’, ‘9’:‘9’, ‘minmaj9’:‘mΔ9’,
+‘maj7’:’\u03947’, ‘min7’:‘7’, ‘7’:‘7’, ‘min7b5’:‘o7’, ‘dim7’:’\u00B07’,
+‘minmaj7’:‘m\u03947’, ‘augmaj7’:’+\u03947’,
+‘maj9’:’\u03949’, ‘min9’:‘9’, ‘9’:‘9’, ‘minmaj9’:‘m\u03949’,
 ‘add9’:‘add9’, ‘madd9’:‘add9’, ‘sus2’:‘sus2’, ‘sus4’:‘sus4’,
 ‘6’:‘6’, ‘min6’:‘6’,
 };
@@ -515,7 +515,7 @@ if (ext && suffixes[ext]) r += ’ ’ + suffixes[ext];
 return r;
 }
 
-// ── State ─────────────────────────────────────────────────
+// – State ———————————————––
 let selKey = 0;
 let selMode = ‘Major’;
 let selStep = null;
@@ -529,7 +529,7 @@ return { id: Date.now()+Math.random(), degree:0, ext:’’, isRest:false, octav
 // Start with I IV V I
 [0,3,4,0].forEach(d => { const s=mkStep(); s.degree=d; steps.push(s); });
 
-// ── Audio ─────────────────────────────────────────────────
+// – Audio ———————————————––
 function getCtx() {
 if (!audioCtx) audioCtx = new(window.AudioContext||window.webkitAudioContext)();
 return audioCtx;
@@ -590,7 +590,7 @@ notes.forEach(m => wave===‘piano’ ? playNote(m2f(m),duration,perGain) : play
 
 function playKeyNote(midi) { getCtx(); playSingleMidi(midi,1.2); }
 
-// ── Helpers ───────────────────────────────────────────────
+// – Helpers ———————————————–
 function getStepChordName(step) {
 const mode = MODES[selMode];
 const rootNote = CHROMATIC[(selKey + mode.intervals[step.degree]) % 12];
@@ -613,7 +613,7 @@ function isExtDiatonic(modeName, degree, ext) {
 return getDiatonicExtensions(modeName, degree).includes(ext);
 }
 
-// ── Piano ─────────────────────────────────────────────────
+// – Piano ———————————————––
 const WHITE_S=[0,2,4,5,7,9,11], BLACK_S=[1,3,6,8,10];
 const KEY_W=38, P_OCT=3, P_NOCTS=3;
 
@@ -647,7 +647,7 @@ p.appendChild(k);
 });
 }
 
-// Black keys — absolutely positioned over the white keys
+// Black keys  -  absolutely positioned over the white keys
 // Calculate left offset by counting white keys to the left
 for (let o = 0; o < P_NOCTS; o++) {
 BLACK_S.forEach(s => {
@@ -680,10 +680,10 @@ document.querySelectorAll(’.white-key,.black-key’).forEach(k=>k.classList.re
 const cn=document.getElementById(‘pianoChordName’);
 const nl=document.getElementById(‘pianoNotesList’);
 const il=document.getElementById(‘pianoInvLabel’);
-if (!step||step.isRest) { cn.textContent=’—’; nl.textContent=’’; il.style.display=‘none’; return; }
+if (!step||step.isRest) { cn.textContent=’ - ‘; nl.textContent=’’; il.style.display=‘none’; return; }
 const notes=chordMidi(step);
 cn.textContent=getStepChordName(step);
-nl.textContent=notes.map(noteName).join(’  ·  ‘);
+nl.textContent=notes.map(noteName).join(’  \u00B7  ‘);
 const inv=step.inversion||0;
 if (inv>0) { il.textContent=invLabel(inv)+’ inversion’; il.style.display=’’; }
 else il.style.display=‘none’;
@@ -705,7 +705,7 @@ document.querySelector(’.piano-wrap’).scrollLeft=Math.max(0,oct*7*KEY_W-20);
 }
 }
 
-// ── Render ────────────────────────────────────────────────
+// – Render ————————————————
 function renderKeys() {
 const g=document.getElementById(‘keyGrid’); g.innerHTML=’’;
 DISPLAY_KEYS.forEach((k,i)=>{
@@ -735,7 +735,7 @@ const sevenths=MODE_7TH_QUALITY[selMode];
 const chordSummary = triads.map((q,i)=>{
 const rn = buildRoman(i,q);
 return `<span style="font-family:var(--font-mono);font-size:0.62rem;color:var(--text2);">${rn}</span>`;
-}).join(’<span style="color:var(--text3)"> · </span>’);
+}).join(’<span style="color:var(--text3)"> \u00B7 </span>’);
 
 document.getElementById(‘modeInfo’).innerHTML=
 `<strong>${selMode}</strong> <span style="color:var(--text3);font-size:0.68rem;">${mode.character}</span><br>`+
@@ -754,7 +754,7 @@ el.draggable=true; el.dataset.idx=idx;
 ```
 const num=document.createElement('div'); num.className='step-num'; num.textContent=`STEP ${idx+1}`;
 const rv=document.createElement('div'); rv.className='step-roman';
-rv.textContent=step.isRest?'—':getStepRoman(step);
+rv.textContent=step.isRest?' - ':getStepRoman(step);
 const nv=document.createElement('div'); nv.className='step-name';
 nv.textContent=step.isRest?'rest':getStepChordName(step);
 const fn=document.createElement('div'); fn.className='step-function';
@@ -765,7 +765,7 @@ if (step.ext && !step.isRest) {
   const badge=document.createElement('div');
   const isDiat=isExtDiatonic(selMode,step.degree,step.ext);
   badge.className='step-ext-badge '+(isDiat?'diatonic':'borrowed');
-  badge.textContent=(isDiat?'':'⚠ ')+CHORD_LABELS[step.ext];
+  badge.textContent=(isDiat?'':'\u26A0 ')+CHORD_LABELS[step.ext];
   el.appendChild(badge);
 }
 if ((step.inversion||0)>0&&!step.isRest) {
@@ -778,7 +778,7 @@ const dots=document.createElement('div'); dots.className='step-dots';
 for(let d=0;d<step.duration;d++){const dot=document.createElement('div');dot.className='step-dot';dots.appendChild(dot);}
 el.appendChild(dots);
 
-const del=document.createElement('button'); del.className='step-del'; del.textContent='×';
+const del=document.createElement('button'); del.className='step-del'; del.textContent='\u00D7';
 del.onclick=e=>{e.stopPropagation();if(step===selStep)selStep=null;steps.splice(idx,1);renderAll();};
 el.appendChild(del);
 
@@ -835,8 +835,8 @@ const sevQ=MODE_7TH_QUALITY[selMode][selStep.degree];
 const triLabel=CHORD_LABELS[triQ]||triQ;
 const sevLabel=CHORD_LABELS[sevQ]||sevQ;
 tn.style.display=‘block’;
-tn.innerHTML=`<span class="fn-label">${fn}</span> — ${fnNote}<br>`+
-`<span style="color:var(--text3);font-size:0.65rem;">Diatonic triad: <strong style="color:var(--text2);">${triLabel}</strong> &nbsp;·&nbsp; Diatonic 7th: <strong style="color:var(--text2);">${sevLabel}</strong></span>`;
+tn.innerHTML=`<span class="fn-label">${fn}</span>  -  ${fnNote}<br>`+
+`<span style="color:var(--text3);font-size:0.65rem;">Diatonic triad: <strong style="color:var(--text2);">${triLabel}</strong> &nbsp;\u00B7&nbsp; Diatonic 7th: <strong style="color:var(--text2);">${sevLabel}</strong></span>`;
 } else {
 tn.style.display=‘none’;
 }
@@ -864,7 +864,7 @@ dg.appendChild(b);
 document.getElementById(‘restToggle’).checked=selStep.isRest;
 document.getElementById(‘octVal’).textContent=selStep.octave;
 
-// Extensions — diatonic
+// Extensions  -  diatonic
 const diatExts=getDiatonicExtensions(selMode,selStep.degree);
 const borExts=getBorrowedExtensions(selMode,selStep.degree);
 const curExt=selStep.ext||MODE_TRIAD_QUALITY[selMode][selStep.degree];
@@ -874,7 +874,7 @@ diatExts.forEach(e=>{
 const b=document.createElement(‘button’);
 b.className=‘ext-btn diatonic’+((selStep.ext||MODE_TRIAD_QUALITY[selMode][selStep.degree])===e?’ active’:’’);
 b.textContent=CHORD_LABELS[e]||e;
-b.title=‘Diatonic — fits naturally in ‘+selMode;
+b.title=‘Diatonic  -  fits naturally in ‘+selMode;
 b.onclick=()=>{
 selStep.ext=e===MODE_TRIAD_QUALITY[selMode][selStep.degree]?’’:e;
 renderAll(); playChord(selStep); litPiano(selStep);
@@ -887,7 +887,7 @@ borExts.forEach(e=>{
 const b=document.createElement(‘button’);
 b.className=‘ext-btn borrowed’+(selStep.ext===e?’ active’:’’);
 b.textContent=CHORD_LABELS[e]||e;
-b.title=‘Non-diatonic — alters a scale note; use intentionally’;
+b.title=‘Non-diatonic  -  alters a scale note; use intentionally’;
 b.onclick=()=>{
 selStep.ext=e; renderAll(); playChord(selStep); litPiano(selStep);
 };
@@ -899,7 +899,7 @@ const isBor = selStep.ext && !isExtDiatonic(selMode,selStep.degree,selStep.ext);
 bw.className=‘borrowed-warning’+(isBor?’ show’:’’);
 if (isBor) {
 const extQ=selStep.ext;
-bw.innerHTML=`⚠ <strong>${CHORD_LABELS[extQ]}</strong> is not diatonic to ${selMode}. `+
+bw.innerHTML=`\u26A0 <strong>${CHORD_LABELS[extQ]}</strong> is not diatonic to ${selMode}. `+
 `It borrows from another mode or uses a chromatic alteration. `+
 `This can work as a deliberate colour choice but breaks pure ${selMode} harmony.`;
 }
@@ -923,7 +923,7 @@ litPiano(selStep);
 
 function renderAll(){renderKeys();renderModes();renderSeq();renderEditor();}
 
-// ── Actions ───────────────────────────────────────────────
+// – Actions ———————————————–
 function addStep(){const s=mkStep();steps.push(s);selStep=s;renderAll();}
 document.getElementById(‘addStepBtn’).onclick=addStep;
 document.getElementById(‘restToggle’).onchange=function(){if(!selStep)return;selStep.isRest=this.checked;renderAll();};
@@ -933,7 +933,7 @@ document.querySelectorAll(’.dur-btn’).forEach(b=>b.onclick=()=>{if(!selStep)
 document.querySelectorAll(’.wave-btn’).forEach(b=>b.onclick=()=>{wave=b.dataset.wave;document.querySelectorAll(’.wave-btn’).forEach(x=>x.classList.remove(‘active’));b.classList.add(‘active’);});
 document.getElementById(‘tempoSlider’).oninput=function(){document.getElementById(‘tempoDisplay’).textContent=this.value;};
 
-// ── Transport ─────────────────────────────────────────────
+// – Transport ———————————————
 function startPlay(){
 if(!steps.length)return; getCtx(); playing=true;
 document.getElementById(‘playBtn’).classList.add(‘playing’);
@@ -947,7 +947,7 @@ if(!playing||!steps.length)return;
 const step=steps[stepIdx];
 playChord(step); litPiano(step,true);
 document.getElementById(‘statusStep’).textContent=(stepIdx+1)+’/’+steps.length;
-document.getElementById(‘statusChord’).textContent=step.isRest?’—’:getStepChordName(step);
+document.getElementById(‘statusChord’).textContent=step.isRest?’ - ‘:getStepChordName(step);
 renderSeq();
 playTmr=setTimeout(()=>{stepIdx=(stepIdx+1)%steps.length;tick();},stepMs(step));
 }
@@ -960,13 +960,13 @@ function stopPlay(){
 playing=false;clearTimeout(playTmr);stepIdx=-1;
 document.getElementById(‘playBtn’).classList.remove(‘playing’);document.getElementById(‘playBtn’).innerHTML=’▶ PLAY’;
 document.getElementById(‘statusDot’).classList.remove(‘playing’);document.getElementById(‘statusText’).textContent=‘STOPPED’;
-document.getElementById(‘statusStep’).textContent=’—’;document.getElementById(‘statusChord’).textContent=’—’;
+document.getElementById(‘statusStep’).textContent=’ - ‘;document.getElementById(‘statusChord’).textContent=’ - ’;
 renderSeq();if(selStep)litPiano(selStep);else litPiano(null);
 }
 document.getElementById(‘playBtn’).onclick=()=>{if(playing)pausePlay();else startPlay();};
 document.getElementById(‘stopBtn’).onclick=stopPlay;
 
-// ── Init — wait for DOM ready ─────────────────────────────
+// – Init  -  wait for DOM ready —————————–
 function init() {
 buildPiano();
 selStep = steps[0];
